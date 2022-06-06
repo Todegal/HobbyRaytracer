@@ -9,6 +9,7 @@ public:
 	Sphere(glm::vec3 c, float r, std::shared_ptr<Material> m) : center(c), radius(r), matPtr(m) { }
 
 	virtual bool hit(const ray& r, float t_min, float t_max, hitRecord& rec) const override;
+    virtual bool boundingBox(AABB& outputBox) const override;
 
 private:
 	glm::vec3 center;
@@ -43,4 +44,14 @@ bool Sphere::hit(const ray& r, float t_min, float t_max, hitRecord& rec) const
     rec.matPtr = matPtr;
 
 	return true;
+}
+
+bool Sphere::boundingBox(AABB& outputBox) const
+{
+    outputBox = AABB(
+        center - glm::vec3(radius),
+        center + glm::vec3(radius)
+    );
+
+    return true;
 }
