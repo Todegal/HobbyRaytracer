@@ -3,12 +3,15 @@
 // STL
 
 #include <iostream>
+#include <iomanip>
 #include <vector>
 #include <memory>
 #include <random>
 #include <thread>
 #include <future>
 #include <atomic>
+#include <chrono>
+#include <string>
 
 // GLM
 
@@ -16,14 +19,13 @@
 #include <glm\common.hpp>
 #include <glm\geometric.hpp>
 #include <glm\vec3.hpp>
+#include <glm\mat3x3.hpp>
+#include <glm\gtx\rotate_vector.hpp>
+#include <glm\gtx\quaternion.hpp>
 #include <glm\gtc\random.hpp>
 #include <glm\gtc\epsilon.hpp>
 #include <glm\gtx\common.hpp>
-
-// STB
-
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
+#include "glm/gtx/string_cast.hpp"
 
 // UTILITY FUNCTIONS
 

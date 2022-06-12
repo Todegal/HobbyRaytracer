@@ -3,7 +3,9 @@
 class Camera
 {
 public:
-	Camera() { }
+	Camera() : origin(0.0f), lowerLeftCorner(0.0f), horizontal(0.0f), vertical(0.0f), 
+	w(0.0f), u(0.0f), v(0.0f), lensRadius(0.0f) { }
+
 	Camera(
 		glm::vec3 lookFrom, glm::vec3 lookAt, glm::vec3 up,
 		float vfov, float aspectRatio,

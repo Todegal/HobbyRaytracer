@@ -5,8 +5,15 @@
 class AABB
 {
 public:
-	AABB() { }
+	AABB() : min(0.0f), max(0.0f) { }
 	AABB(const glm::vec3& minimum, const glm::vec3& maximum) : min(minimum), max(maximum) { }
+	static AABB createFromDimensions(const glm::vec3& center, const glm::vec3& dimensions)
+	{
+		glm::vec3 min = center - dimensions / 2.0f;
+		glm::vec3 max = center + dimensions / 2.0f;
+
+		return AABB(min, max);
+	}
 
 	glm::vec3 getMin() const { return min; }
 	glm::vec3 getMax() const { return max; }

@@ -16,9 +16,39 @@
     <Filter Include="Header Files\vendor">
       <UniqueIdentifier>{b8b7ea42-c62d-4288-b10e-7df6e219014a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\transformations">
+      <UniqueIdentifier>{7417f3a5-2a91-4af8-8af1-110af6ca0e69}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\transformations">
+      <UniqueIdentifier>{022a6b4f-dae4-46c1-9774-06c20ffbb041}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bvh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hittableList.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sphere.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="texture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="material.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="translate.cpp">
+      <Filter>Source Files\transformations</Filter>
+    </ClCompile>
+    <ClCompile Include="rotateY.cpp">
+      <Filter>Source Files\transformations</Filter>
+    </ClCompile>
+    <ClCompile Include="constantMedium.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -51,6 +81,27 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="bvh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="texture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>Header Files\vendor</Filter>
+    </ClInclude>
+    <ClInclude Include="aarect.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="box.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="translate.h">
+      <Filter>Header Files\transformations</Filter>
+    </ClInclude>
+    <ClInclude Include="rotateY.h">
+      <Filter>Header Files\transformations</Filter>
+    </ClInclude>
+    <ClInclude Include="constantMedium.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

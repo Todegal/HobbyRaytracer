@@ -1,23 +1,42 @@
 #include "stdafx.h"
 
+// STB
+#ifdef _MSC_VER
+#pragma warning (push, 0)
+#endif
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
+// Restore warning levels.
+#ifdef _MSC_VER
+#pragma warning (pop)
+#endif
+
 #include "ray.h"
 #include "aabb.h"
 #include "sphere.h"
 #include "hittableList.h"
 #include "camera.h"
+#include "texture.h"
 #include "material.h"
 #include "bvh.h"
+#include "aarect.h"
+#include "box.h"
+#include "translate.h"
+#include "rotateY.h"
+#include "constantMedium.h"
 
-// IMAGE 
+// IMAGE CONSTANTS 
 
 constexpr float ASPECT_RATIO = 16.0f / 9.0f;
-constexpr int IMAGE_WIDTH = 640, IMAGE_HEIGHT = static_cast<int>((float)IMAGE_WIDTH / ASPECT_RATIO);
+constexpr int IMAGE_WIDTH = 1920, IMAGE_HEIGHT = static_cast<int>((float)IMAGE_WIDTH / ASPECT_RATIO);
 
-constexpr int CHANNELS = 3;
+constexpr int CHANNELS = 3; // RGB
 
-constexpr int SAMPLES_PER_PIXEL = 20;
+constexpr int SAMPLES_PER_PIXEL = 10000; // Number of rays shot through each pixel (higher = better quality but worse performance)
 
-constexpr int MAX_DEPTH = 50;
+constexpr int MAX_DEPTH = 50; // Ray "bounce" depth
 
 constexpr int NUM_THREADS = 20;
 
@@ -25,6 +44,7 @@ static std::vector<uint8_t> pixels;
 
 static void writeColour(glm::vec3 colour, std::vector<uint8_t>& p)
 {
+	// Do not permit NaN!
 	if (colour.r != colour.r) colour.r = 0.0f;
 	if (colour.g != colour.g) colour.g = 0.0f;
 	if (colour.b != colour.b) colour.b = 0.0f;
@@ -36,36 +56,36 @@ static void writeColour(glm::vec3 colour, std::vector<uint8_t>& p)
 
 // RENDER
 
-static glm::vec3 rayColour(const ray& r, const std::shared_ptr<Hittable> world, int depth = MAX_DEPTH)
+static glm::vec3 rayColour(const ray& r, const glm::vec3& background, const std::shared_ptr<Hittable> world, int depth = MAX_DEPTH)
 {
 	if (depth <= 0) // If depth limit is exceeded just return black
 		return glm::vec3(0.0f);
 
 	hitRecord rec;
-	if (world->hit(r, 0.001f, INFINITY, rec))
+	if (!world->hit(r, 0.001f, INFINITY, rec))
 	{
-		ray scattered;
-		glm::vec3 attenuation;
-		if (rec.matPtr->scatter(r, rec, attenuation, scattered))
-		{
-			return attenuation * rayColour(scattered, world, depth - 1);
-		}
-
-		return glm::vec3(0, 0, 0);
+		return background;
 	}
 
-	glm::vec3 unitDirection = glm::normalize(r.getDirection());
-	float t = 0.5 * (unitDirection.y + 1.0);
+	ray scattered;
+	glm::vec3 attenuation;
+	glm::vec3 emitted = rec.matPtr->emitted(rec.u, rec.v, rec.p);
 
-	return (1.0f - t) * glm::vec3(1.0f) + t * glm::vec3(0.5f, 0.7f, 1.0f);
+	bool b = !rec.matPtr->scatter(r, rec, attenuation, scattered);
+	if (b)
+	{
+		return emitted;
+	}
+
+	return emitted + attenuation * rayColour(scattered, background, world, depth - 1);
 }
 
-void threadedRender(int startScanline, int nScanlines, const std::shared_ptr<Hittable> world, const Camera camera,
-	std::promise<std::vector<uint8_t>>&& promise, std::atomic<int>* progress
+void threadedRender(int startScanline, int nScanlines, const glm::vec3& background, const std::shared_ptr<Hittable> world, const Camera camera,
+	std::promise<std::vector<uint8_t>>&& promise, std::shared_ptr<std::atomic<int>> progress
 )
 {
 	std::vector<uint8_t> portion; int c = 0;
-	for (int y = startScanline; y >= startScanline - nScanlines; --y)
+	for (int y = startScanline - 1; y >= startScanline - nScanlines; --y)
 	{
 		for (int x = 0; x < IMAGE_WIDTH; ++x)
 		{
@@ -76,7 +96,7 @@ void threadedRender(int startScanline, int nScanlines, const std::shared_ptr<Hit
 				float u = ((float)x + glm::linearRand(0.0f, 1.0f)) / (IMAGE_WIDTH - 1);
 				float v = ((float)y + glm::linearRand(0.0f, 1.0f)) / (IMAGE_HEIGHT - 1);
 
-				pixelColour += rayColour(camera.getRay(u, v), world);
+				pixelColour += rayColour(camera.getRay(u, v), background, world);
 			}
 
 			writeColour(glm::sqrt(pixelColour / (float)SAMPLES_PER_PIXEL), portion);
@@ -87,9 +107,9 @@ void threadedRender(int startScanline, int nScanlines, const std::shared_ptr<Hit
 	promise.set_value(portion);
 }
 
-static void render(int nThreads, const const std::shared_ptr<Hittable> world, const Camera camera)
+static void render(int nThreads, const glm::vec3& background, const std::shared_ptr<Hittable> world, const Camera camera)
 {
-	std::vector<std::atomic<int>*> progressMonitors;
+	std::vector<std::shared_ptr<std::atomic<int>>> progressMonitors;
 	std::vector<std::future<std::vector<uint8_t>>> futures;
 	std::vector<std::thread> threads;
 
@@ -98,11 +118,11 @@ static void render(int nThreads, const const std::shared_ptr<Hittable> world, co
 		std::promise<std::vector<uint8_t>> p;
 		futures.emplace_back(p.get_future());
 
-		progressMonitors.push_back(new std::atomic<int>(0));
+		progressMonitors.push_back(std::make_shared<std::atomic<int>>(0));
 
 		threads.emplace_back(
 			&threadedRender,
-			(int)(IMAGE_HEIGHT / nThreads) * (i + 1), (int)(IMAGE_HEIGHT / nThreads), world, camera,
+			(int)(IMAGE_HEIGHT / nThreads) * (i + 1), (int)ceil((double)IMAGE_HEIGHT / (double)nThreads), background, world, camera,
 			std::move(p), progressMonitors[i]
 		);
 	}
@@ -110,14 +130,15 @@ static void render(int nThreads, const const std::shared_ptr<Hittable> world, co
 	int scanlinesCompleted = 0;
 	while (scanlinesCompleted < IMAGE_HEIGHT)
 	{
-		int count = 0;
+		scanlinesCompleted = 0;
 		for (size_t i = 0; i < progressMonitors.size(); i++)
 		{
-			count += progressMonitors[i]->load();
+			scanlinesCompleted += progressMonitors[i]->load();
 		}
-		scanlinesCompleted = count;
 
-		std::cerr << "\rScanlines completed: " << scanlinesCompleted << "/" << IMAGE_HEIGHT << std::flush;
+		std::cout << "\rScanlines completed: " << scanlinesCompleted << "/" << IMAGE_HEIGHT << std::flush;
+
+		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
 
 	for (int i = nThreads - 1; i >= 0; i--)
@@ -130,10 +151,11 @@ static void render(int nThreads, const const std::shared_ptr<Hittable> world, co
 	}
 }
 
-std::shared_ptr<HittableList> randomScene(Camera& camera) {
+std::shared_ptr<HittableList> randomScene(Camera& camera, glm::vec3& background) {
 	HittableList world;
 
-	auto ground_material = std::make_shared<Lambertian>(glm::vec3(0.5, 0.5, 0.5));
+	auto ground_material =
+		std::make_shared<Metal>(std::make_shared<CheckeredTexture>(glm::vec3(0.2f, 0.3f, 0.1f), glm::vec3(0.9f, 0.9f, 0.9f)), 0.01f);
 	world.add(std::make_shared<Sphere>(glm::vec3(0, -1000, 0), 1000, ground_material));
 
 	for (int a = -7; a < 7; a++) {
@@ -168,7 +190,7 @@ std::shared_ptr<HittableList> randomScene(Camera& camera) {
 		}
 	}
 
-	auto material1 = std::make_shared<Dielectric>(1.5, 0.05);
+	auto material1 = std::make_shared<Dielectric>(1.5, 0.0f);
 	world.add(std::make_shared<Sphere>(glm::vec3(0, 1, 0), 1.0, material1));
 
 	auto material2 = std::make_shared<Lambertian>(glm::vec3(0.4, 0.2, 0.1));
@@ -183,16 +205,18 @@ std::shared_ptr<HittableList> randomScene(Camera& camera) {
 	glm::vec3 lookat(0, 0, 0);
 	glm::vec3 up(0, 1, 0);
 
-	auto dist_to_focus = 10.0;
-	auto aperture = 0.1;
+	float dist_to_focus = 10.0f;
+	float aperture = 0.1f;
 
 	Camera cam(lookfrom, lookat, up, 20, ASPECT_RATIO, aperture, dist_to_focus);
 	camera = cam;
 
+	background = glm::vec3(0.70f, 0.80f, 1.00f);
+
 	return std::make_shared<HittableList>(nodeTree);
 }
 
-std::shared_ptr<HittableList> testScene(Camera& camera)
+std::shared_ptr<HittableList> reflectionScene(Camera& camera, glm::vec3& background)
 {
 	std::shared_ptr<HittableList> world = std::make_shared<HittableList>();
 
@@ -214,30 +238,299 @@ std::shared_ptr<HittableList> testScene(Camera& camera)
 	glm::vec3 lookAt = { 0, 1, 0 };
 	glm::vec3 up = { 0, 1, 0 };
 
-	auto distToFocus = glm::length(lookFrom - lookAt);
-	auto aperture = 0.1;
+	float distToFocus = glm::length(lookFrom - lookAt);
+	float aperture = 0.1f;
 
 	Camera cam(lookFrom, lookAt, up, 30, ASPECT_RATIO, aperture, distToFocus);
 	camera = cam;
 
+	background = glm::vec3(0.70f, 0.80f, 1.00f);
+
 	return std::make_shared<HittableList>(std::make_shared<BVHNode>(*world.get()));
+}
+
+std::shared_ptr<HittableList> checkeredScene(Camera& camera, glm::vec3& background)
+{
+	std::shared_ptr<HittableList> world = std::make_shared<HittableList>();
+
+	std::shared_ptr<CheckeredTexture> checkeredTexture =
+		std::make_shared<CheckeredTexture>(glm::vec3(0.2f, 0.3f, 0.1f), glm::vec3(0.9f, 0.9f, 0.9f));
+
+	world->add(std::make_shared<Sphere>(glm::vec3(0, -10, 0), 10.0f, std::make_shared<Lambertian>(checkeredTexture)));
+	world->add(std::make_shared<Sphere>(glm::vec3(0, 10, 0), 10.0f, std::make_shared<Lambertian>(checkeredTexture)));
+
+	glm::vec3 lookFrom = { 13, 2, 3 };
+	glm::vec3 lookAt = { 0, 0, 0 };
+	glm::vec3 up = { 0, 1, 0 };
+
+	float distToFocus = glm::length(lookFrom - lookAt);
+	float aperture = 0.0f;
+
+	Camera cam(lookFrom, lookAt, up, 20, ASPECT_RATIO, aperture, distToFocus);
+	camera = cam;
+
+	background = glm::vec3(0.70f, 0.80f, 1.00f);
+
+	return std::make_shared<HittableList>(std::make_shared<BVHNode>(*world.get()));
+}
+
+std::shared_ptr<HittableList> earthScene(Camera& camera, glm::vec3& background)
+{
+	std::shared_ptr<HittableList> world = std::make_shared<HittableList>();
+
+	auto ground_material =
+		std::make_shared<Metal>(std::make_shared<CheckeredTexture>(glm::vec3(0.2f, 0.3f, 0.1f), glm::vec3(0.9f, 0.9f, 0.9f)), 0.01f);
+	world->add(std::make_shared<Sphere>(glm::vec3(0, -1000, 0), 1000, ground_material));
+
+	std::shared_ptr<ImageTexture> earthmapTexture = std::make_shared<ImageTexture>("earthmap.jpg");
+	std::shared_ptr<ImageTexture> earthmapMetallness = std::make_shared<ImageTexture>("earthmapMetallness.jpg");
+	std::shared_ptr<PBR> earthmapMat = std::make_shared<PBR>(earthmapTexture, earthmapMetallness, 0.2f);
+
+	world->add(std::make_shared<Sphere>(glm::vec3(0, 2, 0), 2, earthmapMat));
+
+	glm::vec3 lookFrom = { 0, 2, 15 };
+	glm::vec3 lookAt = { 0, 2, 0 };
+	glm::vec3 up = { 0, 1, 0 };
+
+	float distToFocus = glm::length(lookFrom - lookAt);
+	float aperture = .1f;
+
+	Camera cam(lookFrom, lookAt, up, 45, ASPECT_RATIO, aperture, distToFocus);
+	camera = cam;
+
+	background = glm::vec3(0.70f, 0.80f, 1.00f);
+
+	return std::make_shared<HittableList>(std::make_shared<BVHNode>(*world.get()));
+}
+
+std::shared_ptr<HittableList> lightScene(Camera& camera, glm::vec3& background)
+{
+	std::shared_ptr<HittableList> world = std::make_shared<HittableList>();
+
+	auto ground_material =
+		std::make_shared<Metal>(std::make_shared<CheckeredTexture>(glm::vec3(0.909f, 0.007f, 0.121f), glm::vec3(0.9f, 0.9f, 0.9f)), .2f);
+	world->add(std::make_shared<Sphere>(glm::vec3(0, -1000, 0), 1000, ground_material));
+
+	std::shared_ptr<ImageTexture> earthmapTexture = std::make_shared<ImageTexture>("earthmap.jpg");
+	std::shared_ptr<ImageTexture> earthmapMetallness = std::make_shared<ImageTexture>("earthmapMetallness.jpg");
+	std::shared_ptr<PBR> earthmapMat = std::make_shared<PBR>(earthmapTexture, earthmapMetallness, 0.2f);
+
+	//world->add(std::make_shared<Sphere>(glm::vec3(0, 1, 0), 1, earthmapMat));
+
+	auto difflight = std::make_shared<DiffuseLight>(glm::vec3(1.0f), 0.5f);
+	world->add(std::make_shared<Sphere>(glm::vec3(0, 1, 0), 1.0f, difflight));
+
+	glm::vec3 lookFrom = { 10, 1, 5.5 };
+	glm::vec3 lookAt = { 0, 1, 0 };
+	glm::vec3 up = { 0, 1, 0 };
+
+	float distToFocus = glm::length(lookFrom - lookAt);
+	float aperture = .3f;
+
+	Camera cam(lookFrom, lookAt, up, 15.0f, ASPECT_RATIO, aperture, distToFocus);
+	camera = cam;
+
+	background = glm::vec3(0.1f);
+
+	return std::make_shared<HittableList>(std::make_shared<BVHNode>(*world.get()));
+}
+
+std::shared_ptr<HittableList> cornellBoxScene(Camera& camera, glm::vec3& background)
+{
+	HittableList world;
+
+	std::shared_ptr<Lambertian> red = std::make_shared<Lambertian>(glm::vec3(0.65f, 0.05f, 0.05f));
+	std::shared_ptr<Lambertian> white = std::make_shared<Lambertian>(glm::vec3(0.73f, 0.73f, 0.73f));
+	std::shared_ptr<Lambertian> green = std::make_shared<Lambertian>(glm::vec3(0.12f, 0.45f, 0.15f));
+	std::shared_ptr<DiffuseLight> light = std::make_shared<DiffuseLight>(glm::vec3(0.93725f, 0.75294f, 0.43922f), 9.0f);
+
+	world.add(std::make_shared<YZRect>(0, 5, -2.5f, 2.5f, 2.5f, red)); // RIGHT SIDE
+	world.add(std::make_shared<YZRect>(0, 5, -2.5f, 2.5f, -2.5f, green)); // LEFT SIDE
+	world.add(std::make_shared<XZRect>(-1, 1, -1, 1, 4.99f, light)); // LIGHT
+	world.add(std::make_shared<XZRect>(-2.5f, 2.5f, -2.5f, 2.5f, 0, white)); // FLOOR
+	world.add(std::make_shared<XZRect>(-2.5f, 2.5f, -2.5f, 2.5f, 5, white)); // CEILING
+	world.add(std::make_shared<XYRect>(-2.5f, 2.5f, 0, 5, -2.5f, white)); // BACK
+
+	std::shared_ptr<Hittable> box1 = std::make_shared<Box>(glm::vec3(0.0f, 1.4f, 0.0f), glm::vec3(1.4f, 2.8f, 1.4f), white);
+	box1 = std::make_shared<RotateY>(box1, 195.0f);
+	box1 = std::make_shared<Translate>(box1, glm::vec3(-0.7f, 0.0f, -0.7f));
+	world.add(box1);
+
+	std::shared_ptr<Hittable> box2 = std::make_shared<Box>(glm::vec3(0.0f, 0.7f, 0.0f), glm::vec3(1.4f), white);
+	box2 = std::make_shared<RotateY>(box2, -18.0f);
+	box2 = std::make_shared<Translate>(box2, glm::vec3(0.9f, 0.0f, 1));
+	world.add(box2);
+
+	std::shared_ptr<Hittable> glassSphere =
+		std::make_shared<Sphere>(glm::vec3(-1, 0.75f, 1.7f), 0.75f, std::make_shared<Dielectric>(1.3f, 0.0f));
+	world.add(glassSphere);
+
+	glm::vec3 lookFrom = { 0, 2.5f, 9.35f };
+	glm::vec3 lookAt = { 0, 2.5f, 0 };
+	glm::vec3 up = { 0, 1, 0 };
+
+	float distToFocus = glm::length(lookFrom - lookAt);
+	float aperture = 0.0001f;
+
+	Camera cam(lookFrom, lookAt, up, 40.0f, ASPECT_RATIO, aperture, distToFocus);
+	camera = cam;
+
+	background = glm::vec3(0);
+
+	return std::make_shared<HittableList>(world);
+}
+
+std::shared_ptr<HittableList> cornellBoxSmokeScene(Camera& camera, glm::vec3& background)
+{
+	HittableList world;
+
+	std::shared_ptr<Lambertian> red = std::make_shared<Lambertian>(glm::vec3(0.65f, 0.05f, 0.05f));
+	std::shared_ptr<Lambertian> white = std::make_shared<Lambertian>(glm::vec3(0.73f, 0.73f, 0.73f));
+	std::shared_ptr<Lambertian> green = std::make_shared<Lambertian>(glm::vec3(0.12f, 0.45f, 0.15f));
+	std::shared_ptr<DiffuseLight> light = std::make_shared<DiffuseLight>(glm::vec3(0.93725f, 0.75294f, 0.43922f), 9.0f);
+
+	world.add(std::make_shared<YZRect>(0, 5, -2.5f, 2.5f, 2.5f, red)); // RIGHT SIDE
+	world.add(std::make_shared<YZRect>(0, 5, -2.5f, 2.5f, -2.5f, green)); // LEFT SIDE
+	world.add(std::make_shared<XZRect>(-1, 1, -1, 1, 4.99f, light)); // LIGHT
+	world.add(std::make_shared<XZRect>(-2.5f, 2.5f, -2.5f, 2.5f, 0, white)); // FLOOR
+	world.add(std::make_shared<XZRect>(-2.5f, 2.5f, -2.5f, 2.5f, 5, white)); // CEILING
+	world.add(std::make_shared<XYRect>(-2.5f, 2.5f, 0, 5, -2.5f, white)); // BACK
+
+	std::shared_ptr<Hittable> box1 = std::make_shared<Box>(glm::vec3(0.0f, 1.4f, 0.0f), glm::vec3(1.4f, 2.8f, 1.4f), white);
+	box1 = std::make_shared<RotateY>(box1, 195.0f);
+	box1 = std::make_shared<Translate>(box1, glm::vec3(-0.7f, 0.0f, -0.7f));
+
+	std::shared_ptr<Hittable> box2 = std::make_shared<Box>(glm::vec3(0.0f, 0.7f, 0.0f), glm::vec3(1.4f), white);
+	box2 = std::make_shared<RotateY>(box2, -18.0f);
+	box2 = std::make_shared<Translate>(box2, glm::vec3(0.9f, 0.0f, 1));
+
+	world.add(std::make_shared<ConstantMedium>(box1, 1, glm::vec3(0)));
+	world.add(std::make_shared<ConstantMedium>(box2, 1, glm::vec3(1)));
+
+	glm::vec3 lookFrom = { 0, 2.5f, 9.355f };
+	glm::vec3 lookAt = { 0, 2.5f, 0 };
+	glm::vec3 up = { 0, 1, 0 };
+
+	float distToFocus = glm::length(lookFrom - lookAt);
+	float aperture = 0.0001f;
+
+	Camera cam(lookFrom, lookAt, up, 40.0f, ASPECT_RATIO, aperture, distToFocus);
+	camera = cam;
+
+	background = glm::vec3(0.0f);
+
+	return std::make_shared<HittableList>(std::make_shared<BVHNode>(world));
+}
+
+std::shared_ptr<HittableList> finalScene(Camera& camera, glm::vec3& background) {
+	HittableList boxes1;
+	auto ground = std::make_shared<Lambertian>(glm::vec3(0.48f, 0.83f, 0.53f));
+
+	const int boxes_per_side = 20;
+	for (int i = 0; i < boxes_per_side; i++) {
+		for (int j = 0; j < boxes_per_side; j++) {
+			float w = 100.0f;
+			float x0 = -1000.0f + i * w;
+			float z0 = -1000.0f + j * w;
+			float y0 = 0.0f;
+			float x1 = x0 + w;
+			float y1 = glm::linearRand(1.0f, 101.0f);
+			float z1 = z0 + w;
+
+			boxes1.add(Box::minMaxBox(glm::vec3(x0, y0, z0), glm::vec3(x1, y1, z1), ground));
+		}
+	}
+
+	HittableList objects;
+
+	objects.add(std::make_shared<BVHNode>(boxes1));
+
+	auto light = std::make_shared<DiffuseLight>(glm::vec3(1), 7.0f);
+	objects.add(std::make_shared<XZRect>(123, 423, 147, 412, 554, light));
+
+	auto moving_sphere_material = std::make_shared<Metal>(glm::vec3(0.7f, 0.3f, 0.1f), 0.1f);
+	objects.add(std::make_shared<Sphere>(glm::vec3(400, 400, 200), 50, moving_sphere_material));
+
+	objects.add(std::make_shared<Sphere>(glm::vec3(260, 150, 45), 50, std::make_shared<Dielectric>(1.5, 0)));
+	objects.add(std::make_shared<Sphere>(
+		glm::vec3(0, 150, 145), 50, std::make_shared<Metal>(glm::vec3(0.8f, 0.8f, 0.9f), 1.0f)
+		));
+
+	auto boundary = std::make_shared<Sphere>(glm::vec3(360, 150, 145), 70, std::make_shared<Dielectric>(1.5, 0));
+	objects.add(boundary);
+	objects.add(std::make_shared<ConstantMedium>(boundary, 0.2f, glm::vec3(0.2f, 0.4f, 0.9f)));
+	boundary = std::make_shared<Sphere>(glm::vec3(0), 5000, std::make_shared<Dielectric>(1.5f, 0));
+	objects.add(std::make_shared<ConstantMedium>(boundary, 0.0001f, glm::vec3(1, 1, 1)));
+
+	auto emat = std::make_shared<Lambertian>(std::make_shared<ImageTexture>("earthmap.jpg"));
+	objects.add(std::make_shared<Sphere>(glm::vec3(400, 200, 400), 100, emat));
+	auto pertext = std::make_shared<SolidColourTexture>(glm::vec3(0.1f));
+	objects.add(std::make_shared<Sphere>(glm::vec3(220, 280, 300), 80, std::make_shared<Lambertian>(pertext)));
+
+	HittableList boxes2;
+	auto white = std::make_shared<Lambertian>(glm::vec3(0.73f, 0.73f, 0.73f));
+	int ns = 1000;
+	for (int j = 0; j < ns; j++) {
+		boxes2.add(std::make_shared<Sphere>(
+			glm::vec3(glm::linearRand(0, 165), glm::linearRand(0, 165), glm::linearRand(0, 165)), 10, white)
+		);
+	}
+
+	objects.add(std::make_shared<Translate>(
+		std::make_shared<RotateY>(std::make_shared<BVHNode>(boxes2), 15),
+		glm::vec3(-100, 270, 395)
+	));
+
+	background = glm::vec3(0);
+
+	glm::vec3 lookFrom = { 478, 278, -600 };
+	glm::vec3 lookAt = { 278, 278, 0 };
+	glm::vec3 up = { 0, 1, 0 };
+
+	float distToFocus = glm::length(lookFrom - lookAt);
+	float aperture = 1;
+
+	Camera cam(lookFrom, lookAt, up, 40.0f, ASPECT_RATIO, aperture, distToFocus);
+	camera = cam;
+
+	return std::make_shared<HittableList>(std::make_shared<BVHNode>(objects));
 }
 
 int main(int argc, char** argv)
 {
+	auto start = std::chrono::high_resolution_clock::now();
+
 	// CAMERA
 	Camera camera;
 
 	// WORLD
-	std::shared_ptr<HittableList> world = testScene(camera);
+	glm::vec3 background;
+	std::shared_ptr<HittableList> world = finalScene(camera, background);
 
 	// RENDER
 
-	render(NUM_THREADS, world, camera);
-
-	std::cerr << std::endl << "Done!" << std::endl;
+	render(NUM_THREADS, background, world, camera);
 
 	// OUTPUT IMAGE
 
-	return stbi_write_bmp("output.bmp", IMAGE_WIDTH, IMAGE_HEIGHT, 3, pixels.data());
+	int r = stbi_write_png("output.png", IMAGE_WIDTH, IMAGE_HEIGHT, 3, pixels.data(), IMAGE_WIDTH * 3);
+
+	// OUTPUT TIMING
+
+	auto end = std::chrono::high_resolution_clock::now();
+	auto eMS = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+	unsigned int iH = std::chrono::duration_cast<std::chrono::hours>(eMS).count();
+
+	unsigned int iM = std::chrono::duration_cast<std::chrono::minutes>(eMS).count() - (iH * 60);
+
+	long double fS = (eMS.count() / 1000.0) - (double)((iM * 60) + (iH * 3600));
+
+	std::cout << std::endl << std::setprecision(6) << "Done! (completed in "
+		<< iH << ":" << iM << ":" << fS << ")" << std::endl;
+
+	std::cout << "Press Enter to Continue...";
+	std::cin.ignore();
+
+	return r;
 }
