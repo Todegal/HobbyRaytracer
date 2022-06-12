@@ -1,1 +1,1 @@
-# RaytracingInOneWeekend
+# Hobby Raytracer
