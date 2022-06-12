@@ -7,9 +7,9 @@ BVHNode::BVHNode(const std::vector<std::shared_ptr<Hittable>>& srcObjects,
 	std::vector<std::shared_ptr<Hittable>> objects = srcObjects;
 
 	// Pick a random axis to compare the objects on
-	int axis = glm::linearRand(0, 2);
-	auto comparator = (axis == 0) ? BVHNode::boxXCompare :
-		(axis == 1) ? BVHNode::boxYCompare
+	int a = glm::linearRand(0, 2);
+	auto comparator = (a == 0) ? BVHNode::boxXCompare :
+		(a == 1) ? BVHNode::boxYCompare
 		: BVHNode::boxZCompare;
 
 	size_t noObjects = end - start;
