@@ -4,8 +4,8 @@ Just a simple raytracer I made initially following the [Ray Tracing in One Weeke
 
 ## Example Images
 
-![Cornell Box](sampleImages/Cornell Box.png)
+![Cornell Box](/sampleImages/Cornell Box.png)
 
-![Demonstration of infinite reflective surfaces](sampleImages/Awesome Reflections.bmp)
+![Demonstration of infinite reflective surfaces](/sampleImages/Awesome Reflections.bmp)
 
-![The test image laid out at the end of the course](sampleImages/Scattered Balls.png)
+![The test image laid out at the end of the course](/sampleImages/Scattered Balls.png)
