@@ -1,6 +1,10 @@
 # Hobby Raytracer
 
-Just a simple Ray Tracer I made initially following the [Ray Tracing in One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.html) course by [Peter Shirely](https://github.com/petershirley)
+Just a simple Ray Tracer I made initially following the [Ray Tracing in One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.html) course by [Peter Shirely](https://github.com/petershirley).
+
+## Features Added
+- Added multithreading support
+- Added rough dieletric materials
 
 ## Example Images
 
