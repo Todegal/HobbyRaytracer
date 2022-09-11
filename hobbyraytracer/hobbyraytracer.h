@@ -5,6 +5,7 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <array>
 #include <memory>
 #include <random>
 #include <thread>

@@ -6,7 +6,7 @@
 #endif
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "vendor/stb_image_write.h"
+#include <stb/stb_image_write.h>
 
 // Restore warning levels.
 #ifdef _MSC_VER
@@ -25,12 +25,15 @@
 #include "box.h"
 #include "translate.h"
 #include "rotateY.h"
+#include "scale.h"
 #include "constantMedium.h"
+#include "triangle.h"
+#include "mesh.h"
 
 // IMAGE CONSTANTS 
 
-constexpr float ASPECT_RATIO = 16.0f / 9.0f;
-constexpr int IMAGE_WIDTH = 800, IMAGE_HEIGHT = static_cast<int>((float)IMAGE_WIDTH / ASPECT_RATIO);
+constexpr float ASPECT_RATIO = 1.0f;
+constexpr int IMAGE_WIDTH = 640, IMAGE_HEIGHT = static_cast<int>((float)IMAGE_WIDTH / ASPECT_RATIO);
 
 constexpr int CHANNELS = 3; // RGB
 
@@ -38,7 +41,7 @@ constexpr int SAMPLES_PER_PIXEL = 50; // Number of rays shot through each pixel 
 
 constexpr int MAX_DEPTH = 50; // Ray "bounce" depth
 
-constexpr int NUM_THREADS = 20;
+constexpr int NUM_THREADS = 10;
 
 static std::vector<uint8_t> pixels;
 
@@ -335,6 +338,106 @@ std::shared_ptr<HittableList> lightScene(Camera& camera, glm::vec3& background)
 	return std::make_shared<HittableList>(std::make_shared<BVHNode>(*world.get()));
 }
 
+std::shared_ptr<HittableList> triangleScene(Camera& camera, glm::vec3& background)
+{
+	std::shared_ptr<HittableList> world = std::make_shared<HittableList>();
+
+	std::shared_ptr<Triangle> t = std::make_shared<Triangle>(
+		glm::vec3(-1.0f, -0.5f, -0.1f),
+		glm::vec3(0.0f, -0.5f, 0.0f),
+		glm::vec3(-0.5f, 0.5f, 0.0f),
+		std::make_shared<UVTest>()
+		);
+
+	std::shared_ptr<ITriangle> it = std::make_shared<ITriangle>(
+		std::array<glm::vec3, 3>({
+			glm::vec3(0.0f, -0.5f, 0.0f),
+			glm::vec3(1.0f, -0.5f, 0.0f),
+			glm::vec3(0.5f, 0.5f, 0.0f)
+		}),
+		std::array<glm::vec3, 3>({
+			glm::vec3(0, 0, 1),
+			glm::vec3(0, 0, 1),
+			glm::vec3(0, 0, 1)
+		}),
+		std::array<glm::vec2, 3>({
+			glm::vec2(0, 0),
+			glm::vec2(2, 0),
+			glm::vec2(0, 2)
+		}), std::make_shared<UVTest>()
+	);
+
+	world->add(t);
+	world->add(it);
+
+	glm::vec3 lookFrom = { 0, 0, 2.5f };
+	glm::vec3 lookAt = { 0, 0, 0 };
+	glm::vec3 up = { 0, 1, 0 };
+
+	float distToFocus = glm::length(lookFrom - lookAt);
+	float aperture = .3f;
+
+	Camera cam(lookFrom, lookAt, up, 45.0f, ASPECT_RATIO, aperture, distToFocus);
+	camera = cam;
+
+	background = glm::vec3(0.1f);
+
+	return std::make_shared<HittableList>(std::make_shared<BVHNode>(*world.get()));
+	//return world;
+}
+
+std::shared_ptr<HittableList> cornellTeapotScene(Camera& camera, glm::vec3& background)
+{
+	HittableList world;
+
+	std::shared_ptr<Lambertian> red = std::make_shared<Lambertian>(glm::vec3(0.65f, 0.05f, 0.05f));
+	std::shared_ptr<Lambertian> white = std::make_shared<Lambertian>(glm::vec3(0.73f, 0.73f, 0.73f));
+	std::shared_ptr<Lambertian> green = std::make_shared<Lambertian>(glm::vec3(0.12f, 0.45f, 0.15f));
+	std::shared_ptr<DiffuseLight> light = std::make_shared<DiffuseLight>(glm::vec3(0.93725f, 0.75294f, 0.43922f), 9.0f);
+
+	//world.add(std::make_shared<YZRect>(0, 5, -2.5f, 2.5f, 2.5f, red)); // RIGHT SIDE
+	//world.add(std::make_shared<YZRect>(0, 5, -2.5f, 2.5f, -2.5f, green)); // LEFT SIDE
+	world.add(std::make_shared<XZRect>(-1, 1, -1, 1, 4.99f, light)); // LIGHT
+	world.add(std::make_shared<XZRect>(-2.5f, 2.5f, -2.5f, 2.5f, 0, red)); // FLOOR
+	//world.add(std::make_shared<XZRect>(-2.5f, 2.5f, -2.5f, 2.5f, 5, white)); // CEILING
+	//world.add(std::make_shared<XYRect>(-2.5f, 2.5f, 0, 5, -2.5f, white)); // BACK
+
+	/*std::shared_ptr<Hittable> box1 = std::make_shared<Box>(glm::vec3(0.0f, 1.4f, 0.0f), glm::vec3(1.4f, 2.8f, 1.4f), white);
+	box1 = std::make_shared<RotateY>(box1, 195.0f);
+	box1 = std::make_shared<Translate>(box1, glm::vec3(-0.7f, 0.0f, -0.7f));
+	world.add(box1);
+
+	std::shared_ptr<Hittable> box2 = std::make_shared<Box>(glm::vec3(0.0f, 0.7f, 0.0f), glm::vec3(1.4f), white);
+	box2 = std::make_shared<RotateY>(box2, -18.0f);
+	box2 = std::make_shared<Translate>(box2, glm::vec3(0.9f, 0.0f, 1));
+	world.add(box2);*/
+
+	//std::shared_ptr<Hittable> glassSphere =
+	//	std::make_shared<Sphere>(glm::vec3(-1, 0.75f, 1.7f), 0.75f, std::make_shared<Dielectric>(1.3f, 0.0f));
+	//world.add(glassSphere);
+
+	std::shared_ptr<Hittable> teapot =
+		std::make_shared<Mesh>("sphere.obj", white);
+		//std::make_shared<Sphere>(glm::vec3(0, 1, 0), 1, white);
+	//teapot = std::make_shared<Translate>(teapot, glm::vec3(-1, 0.0f, 1.7f));
+	//teapot = std::make_shared<Scale>(teapot, glm::vec3(.4f));
+	world.add(teapot);
+
+	glm::vec3 lookFrom = { 0, 2.5f, 9.35f };
+	glm::vec3 lookAt = { 0, 2.5f, 0 };
+	glm::vec3 up = { 0, 1, 0 };
+
+	float distToFocus = glm::length(lookFrom - lookAt);
+	float aperture = 0.0001f;
+
+	Camera cam(lookFrom, lookAt, up, 40.0f, ASPECT_RATIO, aperture, distToFocus);
+	camera = cam;
+
+	background = glm::vec3(.4f);
+
+	return std::make_shared<HittableList>(std::make_shared<BVHNode>(world));
+}
+
 std::shared_ptr<HittableList> cornellBoxScene(Camera& camera, glm::vec3& background)
 {
 	HittableList world;
@@ -377,7 +480,7 @@ std::shared_ptr<HittableList> cornellBoxScene(Camera& camera, glm::vec3& backgro
 
 	background = glm::vec3(0);
 
-	return std::make_shared<HittableList>(world);
+	return std::make_shared<HittableList>(std::make_shared<BVHNode>(world));
 }
 
 std::shared_ptr<HittableList> cornellBoxSmokeScene(Camera& camera, glm::vec3& background)
@@ -508,7 +611,7 @@ int main(int argc, char** argv)
 
 	// WORLD
 	glm::vec3 background;
-	std::shared_ptr<HittableList> world = reflectionScene(camera, background);
+	std::shared_ptr<HittableList> world = cornellTeapotScene(camera, background);
 
 	// RENDER
 

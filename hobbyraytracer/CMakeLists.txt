@@ -12,7 +12,10 @@ set(SOURCES
 	"texture.cpp" 
 	"constantMedium.cpp"
 	"translate.cpp"
-	"rotateY.cpp")
+	"rotateY.cpp"
+	"triangle.cpp"
+	"mesh.cpp"
+	"scale.cpp")
 
 set(HEADERS
 	"aabb.h"
@@ -27,15 +30,16 @@ set(HEADERS
 	"ray.h"
 	"rotateY.h"
 	"sphere.h"
-	"vendor/stb_image.h"
-	"vendor/stb_image_write.h"
 	"hobbyraytracer.h"
 	"texture.h"
-	"translate.h")
-
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../glm)
+	"translate.h"
+	"triangle.h"
+	"mesh.h"
+	"scale.h")
 	
 add_executable (hobbyraytracer ${SOURCES} ${HEADERS})
+
+target_link_libraries(hobbyraytracer PUBLIC assimp)
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET hobbyraytracer PROPERTY CXX_STANDARD 20)

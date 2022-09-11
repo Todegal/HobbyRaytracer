@@ -57,6 +57,27 @@ private:
 	float s;
 };
 
+class UVTest : public Material
+{
+public:
+	UVTest() { }
+
+	bool scatter(const ray& r_in, const hitRecord& rec, glm::vec3& attenuation, ray& scattered) const override
+	{
+		glm::vec3 scatterDirection = rec.normal + glm::sphericalRand(1.0f);
+
+		if (nearZero(scatterDirection))
+		{
+			scatterDirection = rec.normal;
+		}
+
+		scattered = ray(rec.p, scatterDirection);
+		attenuation = rec.normal;
+
+		return true;
+	}
+};
+
 class Lambertian : public Material
 {
 public:

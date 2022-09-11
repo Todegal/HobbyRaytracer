@@ -5,7 +5,7 @@
 class Sphere : public Hittable
 {
 public:
-	Sphere() { }
+	Sphere() :center(0.0f), radius(0.0f), matPtr(nullptr) { }
 	Sphere(glm::vec3 c, float r, std::shared_ptr<Material> m) : center(c), radius(r), matPtr(m) { }
 
 	virtual bool hit(const ray& r, float t_min, float t_max, hitRecord& rec) const override;

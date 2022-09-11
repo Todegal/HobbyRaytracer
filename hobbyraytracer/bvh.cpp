@@ -34,13 +34,17 @@ BVHNode::BVHNode(const std::vector<std::shared_ptr<Hittable>>& srcObjects,
 			right = objects[start];
 		}
 	}
-	else // Otherwise sort the objects on the chosen axis and put them into two nodes further down the tree
+	else if (noObjects != 0) // Otherwise sort the objects on the chosen axis and put them into two nodes further down the tree
 	{
 		std::sort(objects.begin() + start, objects.begin() + end, comparator);
 
 		size_t mid = start + noObjects / 2;
 		left = std::make_shared<BVHNode>(objects, start, mid);
 		right = std::make_shared<BVHNode>(objects, mid, end);
+	}
+	else
+	{
+		return;
 	}
 
 	// Find the bounding boxes for the two pointers and combine them to get the bounding box for this node
