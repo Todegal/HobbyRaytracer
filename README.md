@@ -1,10 +1,18 @@
 # Hobby Raytracer
 
 Just a simple Ray Tracer I made initially following the [Ray Tracing in One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.html) course by [Peter Shirely](https://github.com/petershirley).
-	
-## Features Added After the Book
-- Added multithreading support
-- Added rough dieletric materials
+
+## Features Added
+- Multithreading support
+- Rough dieletric materials
+- ACES Tonemapping and correct gamma correction
+- Triangle intersections and polygon meshes loaded using [Assimp](https://github.com/assimp/assimp)
+
+## Build
+```batch
+git clone --recurse-submodules https://github.com/Todegal/HobbyRaytracer.git
+cmake -S . -B out
+```
 
 ## Example Images
 
