@@ -19,7 +19,7 @@ cmake -S . -B out
 ## Example Images
 
 ### Utah Teapot Test Render
-[!Utah Teapot - took roughly 2 and a half minutes at 100 samples, 640x640](/sampleImages/Utah-Teapot.png)
+![Utah Teapot - took roughly 2 and a half minutes at 100 samples, 640x640](/sampleImages/Utah-Teapot.png)
 
 ### Cornell Box
 ![Cornell Box](/sampleImages/Cornell-Box.png)
