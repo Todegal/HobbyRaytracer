@@ -25,7 +25,6 @@
 #include "box.h"
 #include "translate.h"
 #include "rotateY.h"
-#include "scale.h"
 #include "constantMedium.h"
 #include "triangle.h"
 #include "mesh.h"
@@ -37,7 +36,7 @@ constexpr int IMAGE_WIDTH = 640, IMAGE_HEIGHT = static_cast<int>((float)IMAGE_WI
 
 constexpr int CHANNELS = 3; // RGB
 
-constexpr int SAMPLES_PER_PIXEL = 50; // Number of rays shot through each pixel (higher = better quality but worse performance)
+constexpr int SAMPLES_PER_PIXEL = 100; // Number of rays shot through each pixel (higher = better quality but worse performance)
 
 constexpr int MAX_DEPTH = 50; // Ray "bounce" depth
 
@@ -51,6 +50,18 @@ static void writeColour(glm::vec3 colour, std::vector<uint8_t>& p)
 	if (colour.r != colour.r) colour.r = 0.0f;
 	if (colour.g != colour.g) colour.g = 0.0f;
 	if (colour.b != colour.b) colour.b = 0.0f;
+
+	// Tonemap https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
+	float a = 2.51f;
+	float b = 0.03f;
+	float c = 2.43f;
+	float d = 0.59f;
+	float e = 0.14f;
+	
+	colour = glm::clamp((colour * (a * colour + b)) / (colour * (c * colour + d) + e), glm::vec3(0), glm::vec3(1));
+
+	// Gamma Correction
+	colour = glm::sqrt(colour);
 
 	p.push_back(static_cast<uint8_t>(256 * glm::clamp(colour.r, 0.0f, 0.9999f)));
 	p.push_back(static_cast<uint8_t>(256 * glm::clamp(colour.g, 0.0f, 0.9999f)));
@@ -102,7 +113,7 @@ void threadedRender(int startScanline, int nScanlines, const glm::vec3& backgrou
 				pixelColour += rayColour(camera.getRay(u, v), background, world);
 			}
 
-			writeColour(glm::sqrt(pixelColour / (float)SAMPLES_PER_PIXEL), portion);
+			writeColour(pixelColour / (float)SAMPLES_PER_PIXEL, portion);
 		}
 		progress->store(++c);
 	}
@@ -395,29 +406,15 @@ std::shared_ptr<HittableList> cornellTeapotScene(Camera& camera, glm::vec3& back
 	std::shared_ptr<Lambertian> green = std::make_shared<Lambertian>(glm::vec3(0.12f, 0.45f, 0.15f));
 	std::shared_ptr<DiffuseLight> light = std::make_shared<DiffuseLight>(glm::vec3(0.93725f, 0.75294f, 0.43922f), 9.0f);
 
-	//world.add(std::make_shared<YZRect>(0, 5, -2.5f, 2.5f, 2.5f, red)); // RIGHT SIDE
-	//world.add(std::make_shared<YZRect>(0, 5, -2.5f, 2.5f, -2.5f, green)); // LEFT SIDE
+	world.add(std::make_shared<YZRect>(0, 5, -2.5f, 2.5f, 2.5f, red)); // RIGHT SIDE
+	world.add(std::make_shared<YZRect>(0, 5, -2.5f, 2.5f, -2.5f, green)); // LEFT SIDE
 	world.add(std::make_shared<XZRect>(-1, 1, -1, 1, 4.99f, light)); // LIGHT
-	world.add(std::make_shared<XZRect>(-2.5f, 2.5f, -2.5f, 2.5f, 0, red)); // FLOOR
-	//world.add(std::make_shared<XZRect>(-2.5f, 2.5f, -2.5f, 2.5f, 5, white)); // CEILING
-	//world.add(std::make_shared<XYRect>(-2.5f, 2.5f, 0, 5, -2.5f, white)); // BACK
-
-	/*std::shared_ptr<Hittable> box1 = std::make_shared<Box>(glm::vec3(0.0f, 1.4f, 0.0f), glm::vec3(1.4f, 2.8f, 1.4f), white);
-	box1 = std::make_shared<RotateY>(box1, 195.0f);
-	box1 = std::make_shared<Translate>(box1, glm::vec3(-0.7f, 0.0f, -0.7f));
-	world.add(box1);
-
-	std::shared_ptr<Hittable> box2 = std::make_shared<Box>(glm::vec3(0.0f, 0.7f, 0.0f), glm::vec3(1.4f), white);
-	box2 = std::make_shared<RotateY>(box2, -18.0f);
-	box2 = std::make_shared<Translate>(box2, glm::vec3(0.9f, 0.0f, 1));
-	world.add(box2);*/
-
-	//std::shared_ptr<Hittable> glassSphere =
-	//	std::make_shared<Sphere>(glm::vec3(-1, 0.75f, 1.7f), 0.75f, std::make_shared<Dielectric>(1.3f, 0.0f));
-	//world.add(glassSphere);
+	world.add(std::make_shared<XZRect>(-2.5f, 2.5f, -2.5f, 2.5f, 0, white)); // FLOOR
+	world.add(std::make_shared<XZRect>(-2.5f, 2.5f, -2.5f, 2.5f, 5, white)); // CEILING
+	world.add(std::make_shared<XYRect>(-2.5f, 2.5f, 0, 5, -2.5f, white)); // BACK
 
 	std::shared_ptr<Hittable> teapot =
-		std::make_shared<Mesh>("sphere.obj", white);
+		std::make_shared<Mesh>("teapot.obj", white);
 		//std::make_shared<Sphere>(glm::vec3(0, 1, 0), 1, white);
 	//teapot = std::make_shared<Translate>(teapot, glm::vec3(-1, 0.0f, 1.7f));
 	//teapot = std::make_shared<Scale>(teapot, glm::vec3(.4f));
@@ -433,7 +430,7 @@ std::shared_ptr<HittableList> cornellTeapotScene(Camera& camera, glm::vec3& back
 	Camera cam(lookFrom, lookAt, up, 40.0f, ASPECT_RATIO, aperture, distToFocus);
 	camera = cam;
 
-	background = glm::vec3(.4f);
+	background = glm::vec3(0.0f);
 
 	return std::make_shared<HittableList>(std::make_shared<BVHNode>(world));
 }

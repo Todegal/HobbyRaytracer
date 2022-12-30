@@ -66,8 +66,8 @@ bool ITriangle::hit(const ray& r, float t_min, float t_max, hitRecord& rec) cons
         float f1 = l1 / s;
         float f2 = l2 / s;
 
-        /*rec.u = uvs[0][0] * f0 + uvs[1][0] * f1 + uvs[2][0] * f2;
-        rec.v = uvs[0][1] * f0 + uvs[1][1] * f1 + uvs[2][1] * f2;*/
+        rec.u = uvs[0][0] * f0 + uvs[1][0] * f1 + uvs[2][0] * f2;
+        rec.v = uvs[0][1] * f0 + uvs[1][1] * f1 + uvs[2][1] * f2;
 
         float N0 = normals[0][0] * f0 + normals[1][0] * f1 + normals[2][0] * f2;
         float N1 = normals[0][1] * f0 + normals[1][1] * f1 + normals[2][1] * f2;

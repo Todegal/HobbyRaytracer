@@ -5,8 +5,6 @@
 #include <assimp/scene.h>           // Output data structure
 #include <assimp/postprocess.h>     // Post processing flags
 
-
-
 Assimp::Importer Mesh::importer;
 
 Mesh::Mesh(std::string filepath, std::shared_ptr<Material> matPtr)
