@@ -14,7 +14,8 @@ set(SOURCES
 	"translate.cpp"
 	"rotateY.cpp"
 	"triangle.cpp"
-	"mesh.cpp")
+	"mesh.cpp"
+	"scene.cpp")
 
 set(HEADERS
 	"aabb.h"
@@ -33,7 +34,8 @@ set(HEADERS
 	"texture.h"
 	"translate.h"
 	"triangle.h"
-	"mesh.h")
+	"mesh.h"
+	"scene.h")
 	
 add_executable (hobbyraytracer ${SOURCES} ${HEADERS})
 

@@ -608,7 +608,7 @@ int main(int argc, char** argv)
 
 	// WORLD
 	glm::vec3 background;
-	std::shared_ptr<HittableList> world = cornellTeapotScene(camera, background);
+	std::shared_ptr<HittableList> world = finalScene(camera, background);
 
 	// RENDER
 
