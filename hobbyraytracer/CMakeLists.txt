@@ -15,7 +15,8 @@ set(SOURCES
 	"rotateY.cpp"
 	"triangle.cpp"
 	"mesh.cpp"
-	"scene.cpp")
+	"scene.cpp"
+	"film.cpp")
 
 set(HEADERS
 	"aabb.h"
@@ -35,11 +36,13 @@ set(HEADERS
 	"translate.h"
 	"triangle.h"
 	"mesh.h"
-	"scene.h")
+	"scene.h"
+	"film.h")
 	
 add_executable (hobbyraytracer ${SOURCES} ${HEADERS})
 
 target_link_libraries(hobbyraytracer PUBLIC assimp)
+target_link_libraries(hobbyraytracer PUBLIC yaml-cpp)
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET hobbyraytracer PROPERTY CXX_STANDARD 20)

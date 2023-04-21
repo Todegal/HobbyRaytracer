@@ -11,6 +11,7 @@ class SolidColourTexture : public Texture
 public:
 	SolidColourTexture() { }
 	SolidColourTexture(glm::vec3 colour) : c(colour) { }
+	SolidColourTexture(float f) : c(glm::vec3(f)) { }
 
 	SolidColourTexture(float r, float g, float b) : c(glm::vec3(r, g, b)) { }
 

@@ -21,7 +21,7 @@ public:
 class Isotropic : public Material
 {
 public:
-	Isotropic(glm::vec3& c) : albedo(std::make_shared<SolidColourTexture>(c)) { }
+	Isotropic(glm::vec3 c) : albedo(std::make_shared<SolidColourTexture>(c)) { }
 	Isotropic(std::shared_ptr<Texture> a) : albedo(a) { }
 
 	virtual bool scatter(const ray& r_in, const hitRecord& rec, glm::vec3& attenuation, ray& scattered) const override
@@ -141,6 +141,7 @@ private:
 class PBR : public Material
 {
 public:
+	PBR(glm::vec3 albedo, float metallness, float roughness);
 	PBR(std::shared_ptr<Texture> albedo, std::shared_ptr<Texture> metallness, float roughness);
 
 	virtual bool scatter(const ray& r_in, const hitRecord& rec, glm::vec3& attenuation, ray& scattered) const override;

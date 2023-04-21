@@ -1,6 +1,13 @@
 #include "hobbyraytracer.h"
 #include "material.h"
 
+PBR::PBR(glm::vec3 albedo, float metallness, float roughness)
+	: mix(std::make_shared<SolidColourTexture>(metallness))
+{
+	metal = std::make_shared<Metal>(albedo, roughness);
+	diffuse = std::make_shared<Lambertian>(albedo);
+}
+
 PBR::PBR(std::shared_ptr<Texture> albedo, std::shared_ptr<Texture> metallness, float roughness)
 	: mix(metallness)
 {

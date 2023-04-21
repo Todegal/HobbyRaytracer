@@ -1,0 +1,71 @@
+# Example scene just loading a teapot model
+film:
+    width: 1080
+    height: 1080
+    samples: 50
+    output: teapot.png
+
+camera:
+    position: [0, 2.5, 8.5]
+    look_at: [0, 2.5, 0]
+    up: [0, 1, 0]
+    fov: 45
+    aperture: 0.001
+    focal_distance: 8.5
+    background: [0.1, 0.1, 0.1]
+
+materials:
+  - name: white
+    type: lambertian
+    albedo: [0.73, 0.73, 0.73]
+  - name: red
+    type: lambertian
+    albedo: [0.65, 0.05, 0.05]
+  - name: green
+    type: lambertian
+    albedo: [0.12, 0.45, 0.15]
+  - name: light
+    type: diffuse_light
+    albedo: [0.93, 0.75, 0.43]
+    strength: 4.5
+
+objects:
+  - type: yz_rect # RIGHT SIDE
+    y: [0, 5]
+    z: [-2.5, 2.5]
+    k: 2.5
+    material: red
+
+  - type: yz_rect # LEFT SIDE
+    y: [0, 5]
+    z: [-2.5, 2.5]
+    k: -2.5
+    material: green
+
+  - type: xz_rect # FLOOR
+    x: [-2.5, 2.5]
+    z: [-2.5, 2.5]
+    k: 0
+    material: white
+
+  - type: xz_rect # CEILING
+    x: [-2.5, 2.5]
+    z: [-2.5, 2.5]
+    k: 5
+    material: white
+
+  - type: xy_rect # BACK
+    x: [-2.5, 2.5]
+    y: [0, 5]
+    k: -2.5
+    material: white
+
+  - type: xz_rect # LIGHT
+    x: [-1, 1]
+    z: [-1, 1]
+    k: 4.99
+    material: light
+
+  - type: mesh
+    file_path: teapot.obj
+    material: white
