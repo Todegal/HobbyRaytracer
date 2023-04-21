@@ -12,6 +12,8 @@
 #include "box.h"
 #include "translate.h"
 #include "rotateY.h"
+#include "rotateQuat.h"
+#include "scale.h"
 #include "constantMedium.h"
 #include "triangle.h"
 #include "mesh.h"
@@ -383,6 +385,7 @@ std::shared_ptr<HittableList> cornellTeapotScene(Camera& camera, glm::vec3& back
 
 	std::shared_ptr<Hittable> teapot =
 		std::make_shared<Mesh>("teapot.obj", white);
+	teapot = std::make_shared<RotateQuat>(teapot, glm::quat({ 0, 45, 0 }));
 		//std::make_shared<Sphere>(glm::vec3(0, 1, 0), 1, white);
 	//teapot = std::make_shared<Translate>(teapot, glm::vec3(-1, 0.0f, 1.7f));
 	//teapot = std::make_shared<Scale>(teapot, glm::vec3(.4f));

@@ -7,6 +7,9 @@
 #include "bvh.h"
 #include "hittableList.h"
 #include "aarect.h"
+#include "rotateQuat.h"
+#include "translate.h"
+#include "scale.h"
 
 template<typename T>
 static T getProperty(std::string name, YAML::Node node)
@@ -60,10 +63,8 @@ static glm::vec2 getProperty<glm::vec2>(std::string name, YAML::Node node)
 
 int Scene::loadScene(std::string path)
 {
-	objects.reset();
+	objects.clear();
 	materials.clear();
-
-    objects = std::make_shared<HittableList>();
 
     YAML::Node root;
 
@@ -137,36 +138,17 @@ int Scene::loadScene(std::string path)
         else
         {
             std::cout << "Couldn't find any material descriptors!" << std::endl;
+            return -1;
         }
 
         if (YAML::Node objectsNode = root["objects"])
         {
-            for (auto object : objectsNode)
+            if (objectsNode.IsSequence())
             {
-                if (getProperty<std::string>("type", object) == "mesh")
+                for (auto it = objectsNode.begin(); it != objectsNode.end(); it++)
                 {
-                    std::string path = getProperty<std::string>("file_path", object);
-                    std::string materialKey = getProperty<std::string>("material", object);
-                    std::shared_ptr<Material> m;
-
-                    if (materials.count(materialKey) == 1) {
-                        m = materials[materialKey];
-                    }
-                    else {
-                        std::cout << "Material " << materialKey << " does not exist!" << std::endl;
-                        continue;
-                    }
-
-                    std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>(path, m);
-
-                    objects->add(mesh);
-                }
-
-                if (getProperty<std::string>("type", object) == "yz_rect")
-                {
-                    glm::vec2 Y = getProperty<glm::vec2>("y", object);
-                    glm::vec2 Z = getProperty<glm::vec2>("z", object);
-                    float k = getProperty<float>("k", object);
+                    auto object = *it;
+                    std::shared_ptr<Hittable> o;
 
                     std::string materialKey = getProperty<std::string>("material", object);
                     std::shared_ptr<Material> m;
@@ -179,47 +161,63 @@ int Scene::loadScene(std::string path)
                         continue;
                     }
 
-                    objects->add(std::make_shared<YZRect>(Y.x, Y.y, Z.x, Z.y, k, m));
-                }
+                    if (getProperty<std::string>("type", object) == "mesh")
+                    {
+                        std::string path = getProperty<std::string>("file_path", object);
 
-                if (getProperty<std::string>("type", object) == "xz_rect")
-                {
-                    glm::vec2 X = getProperty<glm::vec2>("x", object);
-                    glm::vec2 Z = getProperty<glm::vec2>("z", object);
-                    float k = getProperty<float>("k", object);
-
-                    std::string materialKey = getProperty<std::string>("material", object);
-                    std::shared_ptr<Material> m;
-
-                    if (materials.count(materialKey) == 1) {
-                        m = materials[materialKey];
-                    }
-                    else {
-                        std::cout << "Material " << materialKey << " does not exist!" << std::endl;
-                        continue;
+                        o = std::make_shared<Mesh>(path, m);
                     }
 
-                    objects->add(std::make_shared<XZRect>(X.x, X.y, Z.x, Z.y, k, m));
-                }
+                    if (getProperty<std::string>("type", object) == "yz_rect")
+                    {
+                        glm::vec2 Y = getProperty<glm::vec2>("y", object);
+                        glm::vec2 Z = getProperty<glm::vec2>("z", object);
+                        float k = getProperty<float>("k", object);
 
-                if (getProperty<std::string>("type", object) == "xy_rect")
-                {
-                    glm::vec2 X = getProperty<glm::vec2>("x", object);
-                    glm::vec2 Y = getProperty<glm::vec2>("y", object);
-                    float k = getProperty<float>("k", object);
-
-                    std::string materialKey = getProperty<std::string>("material", object);
-                    std::shared_ptr<Material> m;
-
-                    if (materials.count(materialKey) == 1) {
-                        m = materials[materialKey];
-                    }
-                    else {
-                        std::cout << "Material " << materialKey << " does not exist!" << std::endl;
-                        continue;
+                        o = std::make_shared<YZRect>(Y.x, Y.y, Z.x, Z.y, k, m);
                     }
 
-                    objects->add(std::make_shared<XYRect>(X.x, X.y, Y.x, Y.y, k, m));
+                    if (getProperty<std::string>("type", object) == "xz_rect")
+                    {
+                        glm::vec2 X = getProperty<glm::vec2>("x", object);
+                        glm::vec2 Z = getProperty<glm::vec2>("z", object);
+                        float k = getProperty<float>("k", object);
+
+                        o = std::make_shared<XZRect>(X.x, X.y, Z.x, Z.y, k, m);
+                    }
+
+                    if (getProperty<std::string>("type", object) == "xy_rect")
+                    {
+                        glm::vec2 X = getProperty<glm::vec2>("x", object);
+                        glm::vec2 Y = getProperty<glm::vec2>("y", object);
+                        float k = getProperty<float>("k", object);
+
+                        o = std::make_shared<XYRect>(X.x, X.y, Y.x, Y.y, k, m);
+                    }
+
+                    // HANDLE TRANSFORMATIONS
+                    if (YAML::Node transformNode = object["transform"])
+                    {
+                        if (transformNode["rotate"])
+                        {
+                            glm::vec3 angles = getProperty<glm::vec3>("rotate", transformNode);
+                            o = std::make_shared<RotateQuat>(o, glm::quat(glm::radians(angles)));
+                        }
+
+                        if (transformNode["scale"])
+                        {
+                            glm::vec3 factor = getProperty<glm::vec3>("scale", transformNode);
+                            o = std::make_shared<Scale>(o, factor);
+                        }
+
+                        if (transformNode["translate"])
+                        {
+                            glm::vec3 offset = getProperty<glm::vec3>("translate", transformNode);
+                            o = std::make_shared<Translate>(o, offset);
+                        }
+                    }
+
+                    objects.add(o);
                 }
             }
         }
@@ -244,5 +242,5 @@ std::shared_ptr<HittableList> Scene::getScene(Camera& cam, glm::vec3& b, Film& f
     b = background;
     f = film;
     
-    return objects;
+    return std::make_shared<HittableList>(objects);
 }

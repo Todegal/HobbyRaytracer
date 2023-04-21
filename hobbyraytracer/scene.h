@@ -12,7 +12,7 @@ class Scene
 {
 private:
 	std::unordered_map<std::string, std::shared_ptr<Material>> materials;
-	std::shared_ptr<HittableList> objects;
+	HittableList objects;
 
 	Camera camera;
 	glm::vec3 background;
