@@ -1,5 +1,7 @@
 #include "hobbyraytracer.h"
 
+#include <glm/gtx/polar_coordinates.hpp>
+
 #include "ray.h"
 #include "aabb.h"
 #include "sphere.h"
@@ -27,7 +29,7 @@ constexpr int NUM_THREADS = 10;
 
 // RENDER
 
-static glm::vec3 rayColour(const ray& r, const glm::vec3& background, const std::shared_ptr<Hittable> world, int depth = MAX_DEPTH)
+static glm::vec3 rayColour(const ray& r, const std::shared_ptr<Texture> background, const std::shared_ptr<Hittable> world, int depth = MAX_DEPTH)
 {
 	if (depth <= 0) // If depth limit is exceeded just return black
 		return glm::vec3(0.0f);
@@ -35,7 +37,15 @@ static glm::vec3 rayColour(const ray& r, const glm::vec3& background, const std:
 	hitRecord rec;
 	if (!world->hit(r, 0.001f, INFINITY, rec))
 	{
-		return background;
+		// Convert normalized ray direction to polar coordinates
+		float phi = atan2(r.getDirection().z, r.getDirection().x);
+		float theta = acos(r.getDirection().y);
+
+		// Convert polar coordinates to UV coordinates
+		float u = phi / (2 * glm::pi<float>()) + 0.5;
+		float v = theta / glm::pi<float>();
+
+		return background->colourValue(u, v, glm::vec3(0));
 	}
 
 	ray scattered;
@@ -51,7 +61,7 @@ static glm::vec3 rayColour(const ray& r, const glm::vec3& background, const std:
 	return emitted + attenuation * rayColour(scattered, background, world, depth - 1);
 }
 
-void threadedRender(int startScanline, int nScanlines, const glm::vec3& background, const std::shared_ptr<Hittable> world, const Camera camera, const Film film,
+void threadedRender(int startScanline, int nScanlines, const std::shared_ptr<Texture> background, const std::shared_ptr<Hittable> world, const Camera camera, const Film film,
 	std::promise<std::vector<uint8_t>>&& promise, std::shared_ptr<std::atomic<int>> progress
 )
 {
@@ -80,7 +90,7 @@ void threadedRender(int startScanline, int nScanlines, const glm::vec3& backgrou
 	promise.set_value(portion);
 }
 
-static void render(int nThreads, const glm::vec3& background, const std::shared_ptr<Hittable> world, const Camera camera, Film& film)
+static void render(int nThreads, const std::shared_ptr<Texture> background, const std::shared_ptr<Hittable> world, const Camera camera, Film& film)
 {
 	std::vector<std::shared_ptr<std::atomic<int>>> progressMonitors;
 	std::vector<std::future<std::vector<uint8_t>>> futures;
@@ -92,6 +102,8 @@ static void render(int nThreads, const glm::vec3& background, const std::shared_
 
 	for (int i = 0; i < nThreads; i++)
 	{
+		std::cout << "\rLaunching worker thread: " << i+1 << "/" << nThreads << std::flush;
+
 		std::promise<std::vector<uint8_t>> p;
 		futures.emplace_back(p.get_future());
 
@@ -107,6 +119,8 @@ static void render(int nThreads, const glm::vec3& background, const std::shared_
 		);
 	}
 
+	std::cout << std::endl;
+
 	int scanlinesCompleted = 0;
 	while (scanlinesCompleted < f.dimensions.y)
 	{
@@ -120,6 +134,8 @@ static void render(int nThreads, const glm::vec3& background, const std::shared_
 
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
+
+	std::cout << std::endl;
 
 	std::vector<uint8_t> pixels;
 
@@ -584,9 +600,9 @@ int main(int argc, char** argv)
 	Film film;
 
 	// WORLD
-	glm::vec3 background;
+	std::shared_ptr<Texture> background;
 	Scene scene;
-	if (scene.loadScene("teapot_scene.yaml") < 1)
+	if (scene.loadScene("statue.yaml") < 1)
 		return -1;
 
 	std::shared_ptr<HittableList> world = scene.getScene(camera, background, film);

@@ -2,8 +2,6 @@
 
 #include "scene.h"
 
-#include <yaml-cpp/yaml.h>
-
 #include "bvh.h"
 #include "hittableList.h"
 #include "aarect.h"
@@ -12,64 +10,129 @@
 #include "scale.h"
 
 template<typename T>
-static T getProperty(std::string name, YAML::Node node)
+T Scene::getProperty(std::string name, YAML::Node node)
 {
     if (YAML::Node prop = node[name])
     {
         return prop.as<T>();
     }
 
-    throw YAML::ParserException(YAML::Mark(), "Could not find required property: " + name);
+    throw YAML::ParserException(node.Mark(), "Could not find required property: " + name);
 }
 
 template<>
-static glm::vec3 getProperty<glm::vec3>(std::string name, YAML::Node node)
+static glm::vec3 Scene::getProperty<glm::vec3>(std::string name, YAML::Node node)
 {
     if (YAML::Node prop = node[name])
     {
         if (prop.IsSequence())
         {
+            std::vector<float> vi = prop.as<std::vector<float>>();
+
+            if (vi.size() != 3)
+                throw YAML::ParserException(prop.Mark(), "Invalid size for vector 3: " + name);
+
             return glm::vec3(
-                prop[0].as<float>(),
-                prop[1].as<float>(),
-                prop[2].as<float>()
+                vi[0],
+                vi[1],
+                vi[2]
             );
         }
 
-        throw YAML::ParserException(YAML::Mark(), "Invalid value for vector: " + name);
+        throw YAML::ParserException(prop.Mark(), "Invalid value for vector 3: " + name);
     }
 
-    throw YAML::ParserException(YAML::Mark(), "Could not find required property: " + name);
+    throw YAML::ParserException(node.Mark(), "Could not find required property: " + name);
 }
 
 template<>
-static glm::vec2 getProperty<glm::vec2>(std::string name, YAML::Node node)
+glm::vec2 Scene::getProperty<glm::vec2>(std::string name, YAML::Node node)
 {
     if (YAML::Node prop = node[name])
     {
         if (prop.IsSequence())
         {
+            std::vector<float> vi = prop.as<std::vector<float>>();
+
+            if (vi.size() != 2)
+                throw YAML::ParserException(prop.Mark(), "Invalid size for vector 2: " + name);
+
             return glm::vec2(
-                prop[0].as<float>(),
-                prop[1].as<float>()
+                vi[0],
+                vi[1]
             );
         }
 
-        throw YAML::ParserException(YAML::Mark(), "Invalid value for vector: " + name);
+        throw YAML::ParserException(prop.Mark(), "Invalid value for vector 2: " + name);
     }
 
-    throw YAML::ParserException(YAML::Mark(), "Could not find required property: " + name);
+    throw YAML::ParserException(node.Mark(), "Could not find required property: " + name);
+}
+
+template<>
+MatVec3 Scene::getProperty<MatVec3>(std::string name, YAML::Node node)
+{
+    if (YAML::Node prop = node[name])
+    {
+        if (prop.IsSequence())
+        {
+            return getProperty<glm::vec3>(name, node);
+        }
+        else
+        {
+            std::string textureName = getProperty<std::string>(name, node);
+            if (textures.count(textureName) == 1)
+            {
+                return textures[textureName];
+            }
+            else {
+                textures[textureName] = std::make_shared<ImageTexture>(textureName);
+                return textures[textureName];
+            }
+        }
+    }
+
+    throw YAML::ParserException(node.Mark(), "Could not find required property: " + name);
+}
+
+template<>
+MatScalar Scene::getProperty<MatScalar>(std::string name, YAML::Node node)
+{
+    if (YAML::Node prop = node[name])
+    {
+        if (prop.IsScalar())
+        {
+            return getProperty<float>(name, node);
+        }
+        else
+        {
+            std::string name = getProperty<std::string>(name, node);
+            if (textures.count(name) == 1)
+            {
+                return textures[name];
+            }
+            else {
+                textures[name] = std::make_shared<ImageTexture>(name);
+                return textures[name];
+            }
+        }
+    }
+
+    throw YAML::ParserException(node.Mark(), "Could not find required property: " + name);
 }
 
 int Scene::loadScene(std::string path)
 {
 	objects.clear();
 	materials.clear();
+    textures.clear();
 
     YAML::Node root;
 
     try {
         root = YAML::LoadFile(path);
+
+        std::cout << "Loading scene: " << path << std::endl;
 
         if (YAML::Node filmNode = root["film"])
         {
@@ -98,8 +161,6 @@ int Scene::loadScene(std::string path)
 
             Camera c(position, lookAt, up, fov, film.getAspectRatio(), aperture, focusDistance);
             camera = c;
-
-            background = getProperty<glm::vec3>("background", cameraNode);
         }
         else
         {
@@ -107,16 +168,81 @@ int Scene::loadScene(std::string path)
             return -1;
         }
 
+        if (YAML::Node texturesNode = root["textures"])
+        {
+            for (auto texture : texturesNode)
+            {
+                std::string name = getProperty<std::string>("name", texture);
+                if (textures.count(name) > 0)
+                {
+                    throw YAML::ParserException(texture.Mark(), "Texture name already exists!");
+                }
+
+                if (getProperty<std::string>("type", texture) == "solid")
+                {
+                    glm::vec3 colour = getProperty<glm::vec3>("colour", texture);
+                    
+                    textures[name] = std::make_shared<SolidColourTexture>(colour);
+                }
+
+                if (getProperty<std::string>("type", texture) == "image")
+                {
+                    std::string path = getProperty<std::string>("path", texture);
+
+                    textures[name] = std::make_shared<ImageTexture>(path);
+                }
+
+                if (getProperty<std::string>("type", texture) == "checkered")
+                {
+                    glm::vec3 even = getProperty<glm::vec3>("even", texture);
+                    glm::vec3 odd = getProperty<glm::vec3>("odd", texture);
+
+                    textures[name] = std::make_shared<CheckeredTexture>(even, odd);
+                }
+
+                if (getProperty<std::string>("type", texture) == "environment")
+                {
+                    std::string path = getProperty<std::string>("path", texture);
+
+                    textures[name] = std::make_shared<EnvironmentMap>(path);
+                }
+            }
+        }
+
+        if (YAML::Node bg = root["camera"]["background"])
+        {
+            if (bg.IsSequence())
+            {
+                background = std::make_shared<SolidColourTexture>(getProperty<glm::vec3>("background", root["camera"]));
+            }
+            else
+            {
+                std::string textureName = getProperty<std::string>("background", root["camera"]);
+                if (textures.count(textureName) == 1)
+                {
+                    background = textures[textureName];
+                }
+                else {
+                    textures[textureName] = std::make_shared<EnvironmentMap>(textureName);
+                    background = textures[textureName];
+                }
+            }
+        }
+        else
+        {
+            throw YAML::ParserException(root["camera"].Mark(), "Could not find required property: background");
+        }
+
         if (YAML::Node materialsNode = root["materials"])
         {
             for (auto material : materialsNode)
             {
                 std::string name = getProperty<std::string>("name", material);
-                glm::vec3 albedo = getProperty<glm::vec3>("albedo", material);
+                MatVec3 albedo = getProperty<MatVec3>("albedo", material);
 
                 if (getProperty<std::string>("type", material) == "diffuse_light")
                 {
-                    float strength = getProperty<float>("strength", material);
+                    MatScalar strength = getProperty<MatScalar>("strength", material);
                     materials[name] = std::make_shared<DiffuseLight>(albedo, strength);
                     continue;
                 }
@@ -129,7 +255,7 @@ int Scene::loadScene(std::string path)
 
                 if (getProperty<std::string>("type", material) == "metal")
                 {
-                    float roughness = getProperty<float>("roughness", material);
+                    MatScalar roughness = getProperty<MatScalar>("roughness", material);
                     materials[name] = std::make_shared<Metal>(albedo, roughness);
                     continue;
                 }
@@ -138,7 +264,6 @@ int Scene::loadScene(std::string path)
         else
         {
             std::cout << "Couldn't find any material descriptors!" << std::endl;
-            return -1;
         }
 
         if (YAML::Node objectsNode = root["objects"])
@@ -163,7 +288,7 @@ int Scene::loadScene(std::string path)
 
                     if (getProperty<std::string>("type", object) == "mesh")
                     {
-                        std::string path = getProperty<std::string>("file_path", object);
+                        std::string path = getProperty<std::string>("path", object);
 
                         o = std::make_shared<Mesh>(path, m);
                     }
@@ -225,18 +350,17 @@ int Scene::loadScene(std::string path)
         {
             std::cout << "Couldn't find any object descriptors!" << std::endl;
         }
+
     }
     catch (const YAML::Exception& ex) {
         std::cout << ex.what() << std::endl;
         return -1;
     }
 
-    std::cout << "Loaded scene: " << path << std::endl;
-
     return 1;
 }
 
-std::shared_ptr<HittableList> Scene::getScene(Camera& cam, glm::vec3& b, Film& f)
+std::shared_ptr<HittableList> Scene::getScene(Camera& cam, std::shared_ptr<Texture>& b, Film& f)
 {
     cam = camera;
     b = background;

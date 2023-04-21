@@ -58,3 +58,17 @@ private:
 	int width, height;
 	int bytesPerScanline;
 };
+
+class EnvironmentMap : public Texture
+{
+public:
+	// Inherited via Texture
+	virtual glm::vec3 colourValue(float u, float v, const glm::vec3& p) const override;
+
+	EnvironmentMap() : data(0), width(0), height(0), channels(0) {} 
+	EnvironmentMap(std::string path);
+
+private:
+	std::vector<float> data;
+	int width, height, channels;
+};

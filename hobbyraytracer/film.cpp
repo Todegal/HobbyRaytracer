@@ -67,5 +67,7 @@ int Film::outputFilm()
 		std::cout << "File type not supported, generating bitmap!" << std::endl;
 	}
 
+	std::cout << ">>> " << outputName << std::endl;
+
 	return stbi_write_bmp(outputName.c_str(), f.dimensions.x, f.dimensions.y, 3, pixels.data());
 }

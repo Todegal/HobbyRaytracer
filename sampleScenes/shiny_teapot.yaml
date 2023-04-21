@@ -1,0 +1,31 @@
+# Example scene just loading a teapot model
+film:
+    width: 1920
+    height: 1080
+    samples: 100
+    output: teapot.png
+
+camera:
+    position: [0, 1, 3]
+    look_at: [0, 1, 0]
+    up: [0, 1, 0]
+    fov: 60
+    aperture: 0.001
+    focal_distance: 8.5
+    background: hall
+
+textures:
+  - name: hall
+    type: environment
+    path: old_hall_4k.hdr
+
+materials:
+  - name: shiny
+    type: metal
+    albedo: [0.73, 0.73, 0.73]
+    roughness: 0.2
+
+objects:
+  - type: mesh
+    path: teapot.obj
+    material: shiny

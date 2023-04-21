@@ -1,9 +1,61 @@
 #pragma once
 
+#include <variant>
+
 #include "texture.h"
 #include "hittable.h"
 
 struct hitRecord;
+
+class MatVec3
+{
+public:
+	//template <typename T, typename = std::enable_if<std::is_same_v<T, glm::vec3> || std::is_base_of_v<Texture, T>>>
+	//MatVec3(T v) : variant(std::move(v))
+	//{ }
+
+	MatVec3(glm::vec3 v) : variant(std::move(v)) {}
+	MatVec3(std::shared_ptr<Texture> v) : variant(v) {}
+
+	glm::vec3 valueAt(float u, float v, glm::vec3 p) const
+	{
+		if (auto* color = std::get_if<glm::vec3>(&variant)) {
+			return *color;
+		}
+		else if (auto* texture = std::get_if<std::shared_ptr<Texture>>(&variant)) {
+			return (*texture)->colourValue(u, v, p);
+		}
+		else {
+			throw std::runtime_error("Invalid Value");
+		}
+	}
+
+private:
+	std::variant<glm::vec3, std::shared_ptr<Texture>> variant;
+};
+
+class MatScalar
+{
+public:
+	MatScalar(float v) : variant(std::move(v)) {}
+	MatScalar(std::shared_ptr<Texture> v) : variant(v) {}
+
+	float valueAt(float u, float v, glm::vec3 p) const
+	{
+		if (auto* color = std::get_if<float>(&variant)) {
+			return *color;
+		}
+		else if (auto* texture = std::get_if<std::shared_ptr<Texture>>(&variant)) {
+			return glm::length((*texture)->colourValue(u, v, p));
+		}
+		else {
+			throw std::runtime_error("Invalid Value");
+		}
+	}
+
+private:
+	std::variant<float, std::shared_ptr<Texture>> variant;
+};
 
 class Material
 {
@@ -39,8 +91,7 @@ private:
 class DiffuseLight : public Material
 {
 public:
-	DiffuseLight(glm::vec3 colour, float strength) : emit(std::make_shared<SolidColourTexture>(colour)), s(strength) { }
-	DiffuseLight(std::shared_ptr<Texture> a, float strength) : emit(a), s(strength) { }
+	DiffuseLight(MatVec3 colour, MatScalar strength) : emit(colour), s(strength) { }
 
 	virtual bool scatter(const ray& r_in, const hitRecord& rec, glm::vec3& attenuation, ray& scattered) const override
 	{
@@ -49,12 +100,12 @@ public:
 
 	virtual glm::vec3 emitted(float u, float v, const glm::vec3& p) const override
 	{
-		return emit->colourValue(u, v, p) * s;
+		return emit.valueAt(u, v, p) * s.valueAt(u, v, p);
 	}
 
 private:
-	std::shared_ptr<Texture> emit;
-	float s;
+	MatVec3 emit;
+	MatScalar s;
 };
 
 class UVTest : public Material
@@ -81,8 +132,7 @@ public:
 class Lambertian : public Material
 {
 public:
-	Lambertian(const glm::vec3& colour) : albedo(std::make_shared<SolidColourTexture>(colour)) { }
-	Lambertian(std::shared_ptr<Texture> a) :albedo(a) { }
+	Lambertian(MatVec3 a) : albedo(a) { }
 
 	bool scatter(const ray& r_in, const hitRecord& rec, glm::vec3& attenuation, ray& scattered) const override
 	{
@@ -94,48 +144,38 @@ public:
 		}
 
 		scattered = ray(rec.p, scatterDirection);
-		attenuation = albedo->colourValue(rec.u, rec.v, rec.p);
+		attenuation = albedo.valueAt(rec.u, rec.v, rec.p);
 
 		return true;
 	}
 
 private:
-	std::shared_ptr<Texture> albedo;
+	MatVec3 albedo;
 };
 
 class Metal : public Material
 {
 public:
-	Metal(const glm::vec3& colour, float roughness) : 
-		albedo(std::make_shared<SolidColourTexture>(colour)),
-		r(std::make_shared<SolidColourTexture>(glm::vec3(roughness))) { }
-
-	Metal(const std::shared_ptr<Texture> a, float roughness) : 
-		albedo(a), r(std::make_shared<SolidColourTexture>(glm::vec3(roughness))) { }
-	
-	// Takes a greyscale roughness map
-	Metal(const std::shared_ptr<Texture> a, const std::shared_ptr<Texture> roughness) :
-		albedo(a), r(roughness) { }
-
-	Metal(const glm::vec3& colour, const std::shared_ptr<Texture> roughness) :
-		albedo(std::make_shared<SolidColourTexture>(colour)), r(roughness) { }
+	Metal(MatVec3 colour, MatScalar roughness) : 
+		albedo(colour),
+		r(roughness) { }
 
 	virtual bool scatter(const ray& r_in, const hitRecord& rec, glm::vec3& attenuation, ray& scattered) const override
 	{
 		glm::vec3 reflected = glm::reflect(glm::normalize(r_in.getDirection()), rec.normal);
 
-		float roughness = glm::length(r->colourValue(rec.u, rec.v, rec.p));
+		float roughness = glm::length(r.valueAt(rec.u, rec.v, rec.p));
 		roughness = roughness < 1 ? roughness : 1;
 
 		scattered = ray(rec.p, reflected + roughness * glm::sphericalRand(1.0f));
-		attenuation = albedo->colourValue(rec.u, rec.v, rec.p);
+		attenuation = albedo.valueAt(rec.u, rec.v, rec.p);
 
 		return glm::dot(scattered.getDirection(), rec.normal) > 0;
 	}
 
 private:
-	std::shared_ptr<Texture> albedo;
-	std::shared_ptr<Texture> r;
+	MatVec3 albedo;
+	MatScalar r;
 };
 
 class PBR : public Material
@@ -156,12 +196,12 @@ private:
 class Dielectric : public Material
 {
 public:
-	Dielectric(float indexOfRefraction, float roughness) : ir(indexOfRefraction), r(roughness) { }
+	Dielectric(MatScalar indexOfRefraction, MatScalar roughness) : ir(indexOfRefraction), r(roughness) { }
 
 	virtual bool scatter(const ray& r_in, const hitRecord& rec, glm::vec3& attenuation, ray& scattered) const override
 	{
 		attenuation = glm::vec3(1, 1, 1);
-		float refractionRatio = rec.frontFace ? (1.0f / ir) : ir;
+		float refractionRatio = rec.frontFace ? (1.0f / ir.valueAt(rec.u, rec.v, rec.p)) : ir.valueAt(rec.u, rec.v, rec.p);
 
 		glm::vec3 unitDirection = glm::normalize(r_in.getDirection());
 		double cosTheta = glm::min(glm::dot(-unitDirection, rec.normal), 1.0f);
@@ -181,13 +221,13 @@ public:
 			direction = glm::refract(unitDirection, rec.normal, refractionRatio);
 		}
 
-		scattered = ray(rec.p, direction + r * glm::sphericalRand(1.0f));
+		scattered = ray(rec.p, direction + r.valueAt(rec.u, rec.v, rec.p) * glm::sphericalRand(1.0f));
 		return true;
 	}
 
 private:
-	float ir; // Index of refraction
-	float r; // Roughness
+	MatScalar ir; // Index of refraction
+	MatScalar r; // Roughness
 
 private:
 	static double reflectance(double cosine, float refIdx)

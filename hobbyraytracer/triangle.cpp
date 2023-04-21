@@ -54,7 +54,7 @@ bool ITriangle::hit(const ray& r, float t_min, float t_max, hitRecord& rec) cons
     
     if (h)
     {
-        glm::vec3 p = r.getOrigin() + (r.getDirection() * rec.t);
+        /*glm::vec3 p = r.getOrigin() + (r.getDirection() * rec.t);
 
         float l0 = glm::length(p - vertices[0]);
         float l1 = glm::length(p - vertices[1]);
@@ -78,7 +78,7 @@ bool ITriangle::hit(const ray& r, float t_min, float t_max, hitRecord& rec) cons
         if (N != glm::vec3(0.0f))
         {
             rec.setFaceNormal(r, N);
-        }
+        }*/
 
         return true;
 

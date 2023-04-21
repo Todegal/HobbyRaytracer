@@ -8,21 +8,27 @@
 #include "camera.h"
 #include "film.h"
 
+#include <yaml-cpp/yaml.h>
+
 class Scene
 {
 private:
 	std::unordered_map<std::string, std::shared_ptr<Material>> materials;
+	std::unordered_map<std::string, std::shared_ptr<Texture>> textures;
 	HittableList objects;
 
 	Camera camera;
-	glm::vec3 background;
+	std::shared_ptr<Texture> background;
 	Film film;
 
 public:
-	Scene() : background(0) { }
+	Scene() { }
 
 	int loadScene(std::string path);
 
-	std::shared_ptr<HittableList> getScene(Camera& cam, glm::vec3& b, Film& f);
+	std::shared_ptr<HittableList> getScene(Camera& cam, std::shared_ptr<Texture>& b, Film& f);
 
+private:
+	template<typename T>
+	T getProperty(std::string name, YAML::Node node);
 };

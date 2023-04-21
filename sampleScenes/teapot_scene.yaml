@@ -1,7 +1,7 @@
 # Example scene just loading a teapot model
 film:
-    width: 1080
-    height: 1080
+    width: 256
+    height: 256
     samples: 50
     output: teapot.png
 
@@ -12,7 +12,12 @@ camera:
     fov: 45
     aperture: 0.001
     focal_distance: 8.5
-    background: [0.1, 0.1, 0.1]
+    background: hall
+
+textures:
+  - name: hall
+    type: environment
+    path: old_hall_4k.hdr
 
 materials:
   - name: white
@@ -67,5 +72,9 @@ objects:
     material: light
 
   - type: mesh
-    file_path: teapot.obj
+    path: teapot.obj
     material: white
+    transform:
+        rotate: [0, 180, 0]
+        translate: [0, 1, 0]
+        scale: [1.4, 1.4, 1.4]
