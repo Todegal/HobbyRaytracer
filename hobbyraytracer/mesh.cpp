@@ -28,7 +28,7 @@ Mesh::Mesh(std::string filepath, std::shared_ptr<Material> matPtr)
 
 			triangleStrip.add(std::make_shared<ITriangle>(triangle));
 		}
-			
+
 		std::cout << "Indexed file: " << filepath << std::endl;
 	}
 
@@ -46,7 +46,6 @@ bool Mesh::boundingBox(AABB& outputBox) const
 	return tree->boundingBox(outputBox);
 }
 
-// Copied from https://github.com/Todegal/SummerGameChallenge/blob/master/SummerGameChallenge/src/Model.cpp
 bool Mesh::assimpLoadFile(
     std::string path, std::vector<glm::vec3>& vertices, std::vector<glm::vec3>& normals, std::vector<glm::vec2>& uvs, std::vector<unsigned int>& indices)
 {

@@ -21,7 +21,6 @@ bool Scale::hit(const ray& r, float t_min, float t_max, hitRecord& rec) const
     }
 
     rec.p *= factor;
-    rec.normal *= glm::normalize(factor);
     rec.setFaceNormal(scaledRay, rec.normal);
 
     return true;

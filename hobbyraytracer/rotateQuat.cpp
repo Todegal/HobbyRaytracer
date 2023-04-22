@@ -58,7 +58,7 @@ bool RotateQuat::hit(const ray& r, float t_min, float t_max, hitRecord& rec) con
 
     // Rotate the hit point and surface normal back to world coordinates
     rec.p = rotation * rec.p;
-    //rec.normal = rotation * rec.normal;
+    rec.normal = rotation * rec.normal;
 
     rec.setFaceNormal(rotatedRay, rec.normal);
 

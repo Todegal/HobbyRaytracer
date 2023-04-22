@@ -34,6 +34,4 @@ private:
 
 	std::shared_ptr<Material> matPtr;
 
-private:
-	bool calculateBarycentric(glm::vec3 point, glm::vec3& bc) const;
 };
