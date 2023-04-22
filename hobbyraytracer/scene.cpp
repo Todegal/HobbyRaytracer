@@ -8,6 +8,7 @@
 #include "rotateQuat.h"
 #include "translate.h"
 #include "scale.h"
+#include "sphere.h"
 
 template<typename T>
 T Scene::getProperty(std::string name, YAML::Node node)
@@ -291,6 +292,14 @@ int Scene::loadScene(std::string path)
                         std::string path = getProperty<std::string>("path", object);
 
                         o = std::make_shared<Mesh>(path, m);
+                    }
+
+                    if (getProperty<std::string>("type", object) == "sphere")
+                    {
+                        glm::vec3 c = getProperty<glm::vec3>("center", object);
+                        float radius = getProperty<float>("radius", object);
+
+                        o = std::make_shared<Sphere>(c, radius, m);
                     }
 
                     if (getProperty<std::string>("type", object) == "yz_rect")

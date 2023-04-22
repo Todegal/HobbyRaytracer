@@ -48,46 +48,77 @@ bool Triangle::boundingBox(AABB& outputBox) const
     return true;
 }
 
+bool ITriangle::calculateBarycentric(glm::vec3 point, glm::vec3& bc) const {
+    // Retrieve the vertices for the face
+    glm::vec3 v0 = vertices[0];
+    glm::vec3 v1 = vertices[1];
+    glm::vec3 v2 = vertices[2];
+
+    // Calculate the barycentric coordinates of the intersection point
+    glm::mat3 A(v0 - v2, v1 - v2, point - v2);
+    glm::mat3 inverseA = glm::inverse(A);
+    glm::vec3 barycentric = inverseA * glm::vec3(1.0f, 1.0f, 1.0f);
+
+    // Check if the barycentric coordinates fall within the valid range for the triangle
+    bool isInsideTriangle = barycentric.x >= 0.0f && barycentric.y >= 0.0f && barycentric.z >= 0.0f && barycentric.x + barycentric.y <= 1.0f;
+
+    return isInsideTriangle;
+}
+
 bool ITriangle::hit(const ray& r, float t_min, float t_max, hitRecord& rec) const
 {
-    bool h = t.hit(r, t_min, t_max, rec);
-    
-    if (h)
-    {
-        /*glm::vec3 p = r.getOrigin() + (r.getDirection() * rec.t);
+    // Calculate the normal of the triangle
+    glm::vec3 normal = glm::normalize(glm::cross(vertices[1] - vertices[0], vertices[2] - vertices[0]));
 
-        float l0 = glm::length(p - vertices[0]);
-        float l1 = glm::length(p - vertices[1]);
-        float l2 = glm::length(p - vertices[2]);
+    // Calculate the distance from the ray origin to the plane of the triangle
+    float distanceToPlane = glm::dot(vertices[0] - r.getOrigin(), normal) / glm::dot(r.getDirection(), normal);
 
-        float s = l0 + l1 + l2;
-
-        float f0 = l0 / s;
-        float f1 = l1 / s;
-        float f2 = l2 / s;
-
-        rec.u = uvs[0][0] * f0 + uvs[1][0] * f1 + uvs[2][0] * f2;
-        rec.v = uvs[0][1] * f0 + uvs[1][1] * f1 + uvs[2][1] * f2;
-
-        float N0 = normals[0][0] * f0 + normals[1][0] * f1 + normals[2][0] * f2;
-        float N1 = normals[0][1] * f0 + normals[1][1] * f1 + normals[2][1] * f2;
-        float N2 = normals[0][2] * f0 + normals[1][2] * f1 + normals[2][2] * f2;
-
-        glm::vec3 N = glm::normalize(glm::vec3(N0, N1, N2));
-        
-        if (N != glm::vec3(0.0f))
-        {
-            rec.setFaceNormal(r, N);
-        }*/
-
-        return true;
-
+    // If the distance to the plane is outside the valid range, return false
+    if (distanceToPlane < t_min || distanceToPlane > t_max) {
+        return false;
     }
 
-    return false;
+    // Calculate the intersection point with the plane of the triangle
+    glm::vec3 intersectionPoint = r.getOrigin() + distanceToPlane * r.getDirection();
+
+    glm::vec3 barycentric;
+    if (calculateBarycentric(intersectionPoint, barycentric))
+    {
+        barycentric = glm::clamp(barycentric, glm::vec3(0.0f), glm::vec3(1.0f));
+    }
+    else
+    {
+        return false;
+    }
+
+    // Update the hit record with this intersection point
+    rec.t = distanceToPlane;
+    rec.p = intersectionPoint;
+
+    glm::vec3 interpolatedNormal = barycentric.x * normals[0] + barycentric.y * normals[1] + barycentric.z * normals[2];
+
+    rec.normal = glm::normalize(interpolatedNormal);
+    rec.setFaceNormal(r, rec.normal);
+
+    glm::vec2 interpolatedUV = barycentric.x * uvs[0] + barycentric.y * uvs[1] + barycentric.z * uvs[2];
+    rec.u = interpolatedUV.x; rec.v = interpolatedUV.y;
+    
+    rec.matPtr = matPtr;
+
+    return true;
 }
 
 bool ITriangle::boundingBox(AABB& outputBox) const
 {
-    return t.boundingBox(outputBox);
+    float minX = glm::min(glm::min(vertices[0].x, vertices[1].x), vertices[2].x);
+    float minY = glm::min(glm::min(vertices[0].y, vertices[1].y), vertices[2].y);
+    float minZ = glm::min(glm::min(vertices[0].z, vertices[1].z), vertices[2].z);
+
+    float maxX = glm::max(glm::max(vertices[0].x, vertices[1].x), vertices[2].x);
+    float maxY = glm::max(glm::max(vertices[0].y, vertices[1].y), vertices[2].y);
+    float maxZ = glm::max(glm::max(vertices[0].z, vertices[1].z), vertices[2].z);
+
+    outputBox = AABB(glm::vec3(minX - 0.0001f, minY - 0.0001f, minZ - 0.0001f), glm::vec3(maxX + 0.0001f, maxY + 0.0001f, maxZ + 0.0001f));
+
+    return true;
 }

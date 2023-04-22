@@ -38,22 +38,23 @@ static glm::vec3 rayColour(const ray& r, const std::shared_ptr<Texture> backgrou
 	if (!world->hit(r, 0.001f, INFINITY, rec))
 	{
 		// Convert normalized ray direction to polar coordinates
-		float phi = atan2(r.getDirection().z, r.getDirection().x);
-		float theta = acos(r.getDirection().y);
+		//float phi = atan2(r.getDirection().z, r.getDirection().x);
+		//float theta = acos(r.getDirection().y);
 
-		// Convert polar coordinates to UV coordinates
-		float u = phi / (2 * glm::pi<float>()) + 0.5;
-		float v = theta / glm::pi<float>();
+		//// Convert polar coordinates to UV coordinates
+		//float u = phi / (2 * glm::pi<float>()) + 0.5;
+		//float v = theta / glm::pi<float>();
 
-		return background->colourValue(u, v, glm::vec3(0));
+		//return background->colourValue(u, v, glm::vec3(0));
+		return glm::vec3(0.1);
 	}
 
 	ray scattered;
 	glm::vec3 attenuation;
 	glm::vec3 emitted = rec.matPtr->emitted(rec.u, rec.v, rec.p);
 
-	bool b = !rec.matPtr->scatter(r, rec, attenuation, scattered);
-	if (b)
+	bool b = rec.matPtr->scatter(r, rec, attenuation, scattered);
+	if (!b)
 	{
 		return emitted;
 	}
@@ -602,7 +603,7 @@ int main(int argc, char** argv)
 	// WORLD
 	std::shared_ptr<Texture> background;
 	Scene scene;
-	if (scene.loadScene("statue.yaml") < 1)
+	if (scene.loadScene("teapot_scene.yaml") < 1)
 		return -1;
 
 	std::shared_ptr<HittableList> world = scene.getScene(camera, background, film);
