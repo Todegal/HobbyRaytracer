@@ -18,7 +18,7 @@ cmake -S . -B out
 
 ## Example Images
 
-### Utah Teapot Test Render
+### Shiny Statue
 ![Shiny Statue](/sampleImages/big_shiny.png)
 Statue model by: [Rico Cilliers](https://polyhaven.com/a/marble_bust_01)
 
