@@ -37,23 +37,27 @@ static glm::vec3 rayColour(const ray& r, const std::shared_ptr<Texture> backgrou
 	hitRecord rec;
 	if (!world->hit(r, 0.001f, INFINITY, rec))
 	{
+		// Normalize ray direction
+		glm::vec3 nD = glm::normalize(r.getDirection());
+
 		// Convert normalized ray direction to polar coordinates
-		float phi = atan2(r.getDirection().z, r.getDirection().x);
-		float theta = acos(r.getDirection().y);
+		float phi = atan2(nD.z, nD.x);
+		float theta = acos(nD.y);
 
 		// Convert polar coordinates to UV coordinates
 		float u = phi / (2 * glm::pi<float>()) + 0.5;
 		float v = theta / glm::pi<float>();
 
 		return background->colourValue(u, v, glm::vec3(0));
+		//return glm::vec3(0.1);
 	}
 
 	ray scattered;
 	glm::vec3 attenuation;
 	glm::vec3 emitted = rec.matPtr->emitted(rec.u, rec.v, rec.p);
 
-	bool b = !rec.matPtr->scatter(r, rec, attenuation, scattered);
-	if (b)
+	bool b = rec.matPtr->scatter(r, rec, attenuation, scattered);
+	if (!b)
 	{
 		return emitted;
 	}
@@ -401,7 +405,7 @@ std::shared_ptr<HittableList> cornellTeapotScene(Camera& camera, glm::vec3& back
 
 	std::shared_ptr<Hittable> teapot =
 		std::make_shared<Mesh>("teapot.obj", white);
-	teapot = std::make_shared<RotateQuat>(teapot, glm::quat({ 0, 45, 0 }));
+	//teapot = std::make_shared<RotateQuat>(teapot, glm::quat({ 0, 45, 0 }));
 		//std::make_shared<Sphere>(glm::vec3(0, 1, 0), 1, white);
 	//teapot = std::make_shared<Translate>(teapot, glm::vec3(-1, 0.0f, 1.7f));
 	//teapot = std::make_shared<Scale>(teapot, glm::vec3(.4f));

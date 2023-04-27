@@ -46,9 +46,9 @@ bool RotateQuat::hit(const ray& r, float t_min, float t_max, hitRecord& rec) con
     // Rotate the ray according to the object's rotation
     glm::vec3 origin = r.getOrigin();
     glm::vec3 direction = r.getDirection();
-    glm::quat rotation_conj = glm::conjugate(rotation);
-    glm::vec3 newOrigin = rotation_conj * origin;
-    glm::vec3 newDirection = rotation_conj * direction;
+    glm::quat invRotation = glm::conjugate(rotation);
+    glm::vec3 newOrigin = invRotation * origin;
+    glm::vec3 newDirection = glm::normalize(invRotation * direction);
     ray rotatedRay(newOrigin, newDirection);
 
     // Check for intersection with the rotated object

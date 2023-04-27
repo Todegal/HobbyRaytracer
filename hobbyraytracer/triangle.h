@@ -22,7 +22,7 @@ class ITriangle : public Hittable
 public:
 	ITriangle();
 	ITriangle(std::array<glm::vec3, 3> _vertices, std::array<glm::vec3, 3> _normals, std::array<glm::vec2, 3> _uvs, std::shared_ptr<Material> _matPtr)
-		: vertices(_vertices), normals(_normals), uvs(_uvs), matPtr(_matPtr), t(_vertices[0], _vertices[1], _vertices[2], _matPtr) { }
+		: vertices(_vertices), normals(_normals), uvs(_uvs), matPtr(_matPtr) { }
 
 	// Inherited via Hittable
 	virtual bool hit(const ray& r, float t_min, float t_max, hitRecord& rec) const override;
@@ -32,7 +32,6 @@ private:
 	std::array<glm::vec3, 3> vertices, normals;
 	std::array<glm::vec2, 3> uvs;
 
-	Triangle t;
-
 	std::shared_ptr<Material> matPtr;
+
 };

@@ -8,7 +8,7 @@ public:
 		: o(origin), dir(direction) { }
 
 	glm::vec3 getOrigin() const { return o; }
-	glm::vec3 getDirection() const { return glm::normalize(dir); }
+	glm::vec3 getDirection() const { return dir; }
 
 	glm::vec3 at(float t) const { return o + (t * dir); }
 

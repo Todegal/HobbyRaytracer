@@ -28,7 +28,7 @@ Mesh::Mesh(std::string filepath, std::shared_ptr<Material> matPtr)
 
 			triangleStrip.add(std::make_shared<ITriangle>(triangle));
 		}
-			
+
 		std::cout << "Indexed file: " << filepath << std::endl;
 	}
 
@@ -46,84 +46,71 @@ bool Mesh::boundingBox(AABB& outputBox) const
 	return tree->boundingBox(outputBox);
 }
 
-// Copied from https://github.com/Todegal/SummerGameChallenge/blob/master/SummerGameChallenge/src/Model.cpp
 bool Mesh::assimpLoadFile(
     std::string path, std::vector<glm::vec3>& vertices, std::vector<glm::vec3>& normals, std::vector<glm::vec2>& uvs, std::vector<unsigned int>& indices)
 {
-	// Load the model as a scene
-	const aiScene* scene = importer.ReadFile(path,
-		aiProcess_CalcTangentSpace |
-		aiProcess_Triangulate |
-		aiProcess_JoinIdenticalVertices |
-		aiProcess_SortByPType
-	);
+    const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
 
-	// If the file could not be loaded
-	if (!scene)
-	{
-		std::cout << "Failed to load file: " << path << std::endl;
-		return false;
-	}
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+        std::cerr << "Assimp error: " << importer.GetErrorString() << std::endl;
+        return false;
+    }
 
-	// If there is a mesh in the scene
-	if (scene->HasMeshes())
-	{
-		// Ensure the lists are empty
-		vertices = {};
-		normals = {};
-		uvs = {};
-		indices = {};
+    for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
+        aiMesh* mesh = scene->mMeshes[i];
+        std::vector<glm::vec3> meshVertices;
+        std::vector<glm::vec3> meshNormals;
+        std::vector<glm::vec2> meshUVs;
+        std::vector<unsigned int> meshIndices;
+        meshVertices.reserve(mesh->mNumVertices);
 
-		// For every mesh in the scene
-		for (size_t i = 0; i < scene->mNumMeshes; i++)
-		{
-			// Temporarly store the mesh
-			const aiMesh* mesh = scene->mMeshes[i];
+        if (mesh->HasNormals()) {
+            meshNormals.reserve(mesh->mNumVertices);
+        }
+        if (mesh->HasTextureCoords(0)) {
+            meshUVs.reserve(mesh->mNumVertices);
+        }
+        meshIndices.reserve(mesh->mNumFaces * 3); // Assume triangle faces
 
-			// For each vertex in the mesh
-			for (size_t j = 0; j < mesh->mNumVertices; j++)
-			{
-				// Push the vertex and normals back
-				vertices.push_back({ mesh->mVertices[j].x, mesh->mVertices[j].y, mesh->mVertices[j].z });
+        for (unsigned int j = 0; j < mesh->mNumVertices; j++) {
+            aiVector3D v = mesh->mVertices[j];
+            meshVertices.push_back(glm::vec3(v.x, v.y, v.z));
 
-				if (mesh->HasNormals())
-				{
-					normals.push_back({ mesh->mNormals[j].x, mesh->mNormals[j].y, mesh->mNormals[j].z });
-				}
-				else
-				{
-					normals.push_back({ 0.0f, 0.0f, 0.0f });
-				}
+            if (mesh->HasNormals()) {
+                aiVector3D n = mesh->mNormals[j];
+                meshNormals.push_back(glm::vec3(n.x, n.y, n.z));
+            }
+            else
+            {
+                meshNormals.push_back(glm::vec3(0, 0, 0));
+            }
 
-				// If there are any textureCoordinates
-				if (mesh->HasTextureCoords(0))
-				{
-					// Push them back
-					uvs.push_back({ mesh->mTextureCoords[0][j].x, mesh->mTextureCoords[0][j].y });
-				}
-				else
-				{
-					uvs.push_back({ 0, 0 });
-				}
-			}
+            if (mesh->HasTextureCoords(0)) {
+                aiVector3D t = mesh->mTextureCoords[0][j];
+                meshUVs.push_back(glm::vec2(t.x, t.y));
+            }
+            else
+            {
+                meshUVs.push_back(glm::vec2(0, 0));
+            }
 
-			// For each face in the mesh
-			for (size_t j = 0; j < mesh->mNumFaces; j++)
-			{
-				aiFace face = mesh->mFaces[j];
-				// For each point in the face
-				for (size_t k = 0; k < face.mNumIndices; k++)
-				{
-					// Push back its index
-					indices.push_back(face.mIndices[k]);
-				}
-			}
-		}
-		
-		std::cout << "Loaded file: " << path << std::endl;
+        }
 
-		return true;
-	}
+        for (unsigned int j = 0; j < mesh->mNumFaces; j++) {
+            aiFace face = mesh->mFaces[j];
 
-	return false;
+            for (unsigned int k = 0; k < face.mNumIndices; k++) {
+                meshIndices.push_back(face.mIndices[k]);
+            }
+        }
+
+        vertices.insert(vertices.end(), meshVertices.begin(), meshVertices.end());
+        normals.insert(normals.end(), meshNormals.begin(), meshNormals.end());
+        uvs.insert(uvs.end(), meshUVs.begin(), meshUVs.end());
+        indices.insert(indices.end(), meshIndices.begin(), meshIndices.end());
+    }
+
+    std::cout << "Loaded mesh: " << path << std::endl;
+
+    return true;
 }

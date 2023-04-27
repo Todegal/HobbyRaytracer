@@ -162,7 +162,7 @@ public:
 
 	virtual bool scatter(const ray& r_in, const hitRecord& rec, glm::vec3& attenuation, ray& scattered) const override
 	{
-		glm::vec3 reflected = glm::reflect(glm::normalize(r_in.getDirection()), rec.normal);
+		glm::vec3 reflected = glm::reflect(glm::normalize(r_in.getDirection()), glm::normalize(rec.normal));
 
 		float roughness = glm::length(r.valueAt(rec.u, rec.v, rec.p));
 		roughness = roughness < 1 ? roughness : 1;
@@ -170,7 +170,7 @@ public:
 		scattered = ray(rec.p, reflected + roughness * glm::sphericalRand(1.0f));
 		attenuation = albedo.valueAt(rec.u, rec.v, rec.p);
 
-		return glm::dot(scattered.getDirection(), rec.normal) > 0;
+		return glm::dot(scattered.getDirection(), glm::normalize(rec.normal)) > 0;
 	}
 
 private:

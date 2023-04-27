@@ -50,44 +50,26 @@ bool Triangle::boundingBox(AABB& outputBox) const
 
 bool ITriangle::hit(const ray& r, float t_min, float t_max, hitRecord& rec) const
 {
+    Triangle t(vertices[0], vertices[1], vertices[2], matPtr);
+
     bool h = t.hit(r, t_min, t_max, rec);
-    
-    if (h)
-    {
-        /*glm::vec3 p = r.getOrigin() + (r.getDirection() * rec.t);
 
-        float l0 = glm::length(p - vertices[0]);
-        float l1 = glm::length(p - vertices[1]);
-        float l2 = glm::length(p - vertices[2]);
+    if (!h)
+        return false;
 
-        float s = l0 + l1 + l2;
+    glm::vec3 iNormal = rec.u * normals[1] + rec.v * normals[2] + (1 - rec.u - rec.v) * normals[0];
+    rec.setFaceNormal(r, iNormal);
 
-        float f0 = l0 / s;
-        float f1 = l1 / s;
-        float f2 = l2 / s;
+    glm::vec2 iUV = rec.u * uvs[1] + rec.v * uvs[2] + (1 - rec.u - rec.v) * uvs[0];
+    rec.u = iUV.x;
+    rec.v = iUV.y;
 
-        rec.u = uvs[0][0] * f0 + uvs[1][0] * f1 + uvs[2][0] * f2;
-        rec.v = uvs[0][1] * f0 + uvs[1][1] * f1 + uvs[2][1] * f2;
-
-        float N0 = normals[0][0] * f0 + normals[1][0] * f1 + normals[2][0] * f2;
-        float N1 = normals[0][1] * f0 + normals[1][1] * f1 + normals[2][1] * f2;
-        float N2 = normals[0][2] * f0 + normals[1][2] * f1 + normals[2][2] * f2;
-
-        glm::vec3 N = glm::normalize(glm::vec3(N0, N1, N2));
-        
-        if (N != glm::vec3(0.0f))
-        {
-            rec.setFaceNormal(r, N);
-        }*/
-
-        return true;
-
-    }
-
-    return false;
+    return h;
 }
 
 bool ITriangle::boundingBox(AABB& outputBox) const
 {
+    Triangle t(vertices[0], vertices[1], vertices[2], matPtr);
+
     return t.boundingBox(outputBox);
 }

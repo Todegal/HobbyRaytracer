@@ -18,6 +18,10 @@ cmake -S . -B out
 
 ## Example Images
 
+### Shiny Statue
+![Shiny Statue](/sampleImages/big_shiny.png)
+Statue model by: [Rico Cilliers](https://polyhaven.com/a/marble_bust_01)
+
 ### Utah Teapot Test Render
 ![Utah Teapot](/sampleImages/Utah-Teapot.png)
  - took roughly 2 and a half minutes at 100 samples, 640x640
