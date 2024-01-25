@@ -38,7 +38,7 @@ public:
 		return true;
 	}
 
-	virtual bool boundingBox(AABB& outputBox) const override
+	virtual bool boundingBox(AABB& outputBox) override
 	{
 		outputBox = AABB(glm::vec3(k - 0.0001, y0, z0), glm::vec3(k + 0.0001, y1, z1));
 		return true;
@@ -85,7 +85,7 @@ public:
 		return true;
 	}
 
-	virtual bool boundingBox(AABB& outputBox) const override
+	virtual bool boundingBox(AABB& outputBox) override
 	{
 		outputBox = AABB(glm::vec3(x0, k - 0.0001, z0), glm::vec3(x1, k + 0.0001, z1));
 		return true;
@@ -132,7 +132,7 @@ public:
 		return true;
 	}
 
-	virtual bool boundingBox(AABB& outputBox) const override
+	virtual bool boundingBox(AABB& outputBox) override
 	{
 		outputBox = AABB(glm::vec3(x0, y0, k - 0.0001f), glm::vec3(x1, y1, k + 0.0001f));
 		return true;

@@ -19,16 +19,22 @@ private:
 
 	Camera camera;
 	std::shared_ptr<Texture> background;
-	Film film;
+	std::shared_ptr<Film> film;
 
 public:
-	Scene() { }
+	Scene() : isLoaded(false) { }
 
 	int loadScene(std::string path);
 
-	std::shared_ptr<HittableList> getScene(Camera& cam, std::shared_ptr<Texture>& b, Film& f);
+	std::shared_ptr<HittableList> getScene();
+
+	const Camera& getCamera() { assert(isLoaded); return camera; }
+	const std::shared_ptr<Texture>& getBackground() { assert(isLoaded); return background; }
+	const std::shared_ptr<Film>& getFilm() { assert(isLoaded); return film; }
 
 private:
 	template<typename T>
 	T getProperty(std::string name, YAML::Node node);
+
+	bool isLoaded;
 };

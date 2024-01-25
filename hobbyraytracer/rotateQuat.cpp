@@ -65,7 +65,7 @@ bool RotateQuat::hit(const ray& r, float t_min, float t_max, hitRecord& rec) con
     return true;
 }
 
-bool RotateQuat::boundingBox(AABB& outputBox) const
+bool RotateQuat::boundingBox(AABB& outputBox)
 {
     outputBox = bBox;
     return hasBox;

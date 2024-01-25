@@ -7,16 +7,16 @@ class BVHNode : public Hittable
 public:
 	BVHNode() { }
 
-	BVHNode(const HittableList& list)
+	BVHNode(HittableList& list)
 		: BVHNode(list.objects, 0, list.objects.size())
 	{ }
 
 	BVHNode(
-		const std::vector<std::shared_ptr<Hittable>>& srcObjects,
+		std::vector<std::shared_ptr<Hittable>>& srcObjects,
 		size_t start, size_t end);
 
 	virtual bool hit(const ray& r, float t_min, float t_max, hitRecord& rec) const override;
-	virtual bool boundingBox(AABB& outputBox) const override;
+	virtual bool boundingBox(AABB& outputBox) override;
 
 private:
 	std::shared_ptr<Hittable> left;

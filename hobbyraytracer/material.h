@@ -145,6 +145,9 @@ public:
 
 		scattered = ray(rec.p, scatterDirection);
 		attenuation = albedo.valueAt(rec.u, rec.v, rec.p);
+		//attenuation = glm::vec3(rec.u, rec.v, 1 - rec.u - rec.v);
+		//attenuation = rec.normal;
+		//attenuation = glm::vec3(1.0f);
 
 		return true;
 	}
@@ -167,7 +170,7 @@ public:
 		float roughness = glm::length(r.valueAt(rec.u, rec.v, rec.p));
 		roughness = roughness < 1 ? roughness : 1;
 
-		scattered = ray(rec.p, reflected + roughness * glm::sphericalRand(1.0f));
+		scattered = ray(rec.p, reflected + roughness * glm::sphericalRand(1.0f) + glm::vec3(std::numeric_limits<float>::epsilon()));
 		attenuation = albedo.valueAt(rec.u, rec.v, rec.p);
 
 		return glm::dot(scattered.getDirection(), glm::normalize(rec.normal)) > 0;

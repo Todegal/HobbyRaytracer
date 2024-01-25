@@ -10,20 +10,19 @@ struct film_desc
 class Film
 {
 public:
-	Film() : 
-		f(), outputName("") { }
 	Film(int w, int h, int samples, std::string output);
 
 	// Inherited via Film
-	static void writeColour(glm::vec3 colour, std::vector<uint8_t>& p);
+	const glm::vec3& tonemap(glm::vec3& colour);
+	static void writeColour(glm::vec3 colour, std::vector<uint8_t>::iterator p);
 
-	void writeFilm(std::vector<uint8_t>& pix) { pixels = pix; }
-	
 	film_desc getFilm() const;
 	float getAspectRatio() const {
 		return (float)f.dimensions.x / (float)f.dimensions.y;
 	}
 	
+	const std::vector<uint8_t>::iterator getPixels() { return pixels.begin(); }
+
 	int outputFilm();
 
 private:

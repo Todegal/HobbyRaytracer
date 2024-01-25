@@ -5,6 +5,9 @@
 #include <assimp/scene.h>           // Output data structure
 #include <assimp/postprocess.h>     // Post processing flags
 
+#include <ranges>
+#include <vector>
+
 Assimp::Importer Mesh::importer;
 
 Mesh::Mesh(std::string filepath, std::shared_ptr<Material> matPtr)
@@ -17,6 +20,7 @@ Mesh::Mesh(std::string filepath, std::shared_ptr<Material> matPtr)
 
 	if (assimpLoadFile(filepath, vertices, normals, uvs, indices))
 	{
+
 		for (size_t i = 0; i < indices.size(); i += 3)
 		{
 			ITriangle triangle(
@@ -28,12 +32,12 @@ Mesh::Mesh(std::string filepath, std::shared_ptr<Material> matPtr)
 
 			triangleStrip.add(std::make_shared<ITriangle>(triangle));
 		}
-
-		std::cout << "Indexed file: " << filepath << std::endl;
 	}
 
 	matPtr = matPtr;
 	tree = std::make_shared<BVHNode>(triangleStrip);
+
+	std::cout << "Indexed file: " << filepath << std::endl;
 }
 
 bool Mesh::hit(const ray& r, float t_min, float t_max, hitRecord& rec) const
@@ -41,7 +45,7 @@ bool Mesh::hit(const ray& r, float t_min, float t_max, hitRecord& rec) const
 	return tree->hit(r, t_min, t_max, rec);
 }
 
-bool Mesh::boundingBox(AABB& outputBox) const
+bool Mesh::boundingBox(AABB& outputBox)
 {
 	return tree->boundingBox(outputBox);
 }

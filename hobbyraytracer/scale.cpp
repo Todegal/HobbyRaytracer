@@ -26,7 +26,7 @@ bool Scale::hit(const ray& r, float t_min, float t_max, hitRecord& rec) const
     return true;
 }
 
-bool Scale::boundingBox(AABB& outputBox) const
+bool Scale::boundingBox(AABB& outputBox)
 {
     outputBox = bBox;
     return hasBox;

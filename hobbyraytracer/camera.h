@@ -31,7 +31,8 @@ public:
 
 	ray getRay(float s, float t) const
 	{
-		glm::vec2 rd = glm::circularRand(lensRadius);
+		// TODO: Add back in randomness
+		glm::vec2 rd = glm::vec3{ 0, 0, 0 };//glm::circularRand(lensRadius);
 		glm::vec3 offset = u * rd.x + v * rd.y;	
 
 		return ray(origin + offset, lowerLeftCorner + s * horizontal + t * vertical - origin - offset);

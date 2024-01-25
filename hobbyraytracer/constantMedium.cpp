@@ -37,7 +37,7 @@ bool ConstantMedium::hit(const ray& r, float t_min, float t_max, hitRecord& rec)
     return true;
 }
 
-bool ConstantMedium::boundingBox(AABB& outputBox) const
+bool ConstantMedium::boundingBox(AABB& outputBox)
 {
     return boundary->boundingBox(outputBox);
 }

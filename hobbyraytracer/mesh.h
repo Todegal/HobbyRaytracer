@@ -14,12 +14,11 @@ struct aiScene;
 class Mesh : public Hittable
 {
 public:
-	Mesh() { }
 	Mesh(std::string filepath, std::shared_ptr<Material> matPtr);
 
 	// Inherited via Hittable
 	virtual bool hit(const ray& r, float t_min, float t_max, hitRecord& rec) const override;
-	virtual bool boundingBox(AABB& outputBox) const override;
+	virtual bool boundingBox(AABB& outputBox) override;
 
 private:
 	static Assimp::Importer importer;

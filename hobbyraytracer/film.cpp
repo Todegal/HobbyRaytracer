@@ -19,9 +19,17 @@ Film::Film(int w, int h, int samples, std::string output)
 {
 	outputName = output;
 	f = { glm::ivec2(w, h), samples };
+	pixels.resize(w * h * 3);
 }
 
-void Film::writeColour(glm::vec3 colour, std::vector<uint8_t>& p)
+void Film::writeColour(glm::vec3 colour, std::vector<uint8_t>::iterator p)
+{
+	*p = static_cast<uint8_t>(256 * glm::clamp(colour.r, 0.0f, 0.9999f));
+	*(++p) = static_cast<uint8_t>(256 * glm::clamp(colour.g, 0.0f, 0.9999f));
+	*(++p) = static_cast<uint8_t>(256 * glm::clamp(colour.b, 0.0f, 0.9999f));
+}
+
+const glm::vec3& Film::tonemap(glm::vec3& colour)
 {
 	// Do not permit NaN!
 	if (colour.r != colour.r) colour.r = 0.0f;
@@ -40,9 +48,7 @@ void Film::writeColour(glm::vec3 colour, std::vector<uint8_t>& p)
 	// Gamma Correction
 	colour = glm::sqrt(colour);
 
-	p.push_back(static_cast<uint8_t>(256 * glm::clamp(colour.r, 0.0f, 0.9999f)));
-	p.push_back(static_cast<uint8_t>(256 * glm::clamp(colour.g, 0.0f, 0.9999f)));
-	p.push_back(static_cast<uint8_t>(256 * glm::clamp(colour.b, 0.0f, 0.9999f)));
+	return colour;
 }
 
 film_desc Film::getFilm() const

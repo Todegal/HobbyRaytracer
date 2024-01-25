@@ -48,7 +48,7 @@ bool Sphere::hit(const ray& r, float t_min, float t_max, hitRecord& rec) const
     return true;
 }
 
-bool Sphere::boundingBox(AABB& outputBox) const
+bool Sphere::boundingBox(AABB& outputBox)
 {
     outputBox = AABB(
         center - glm::vec3(radius),

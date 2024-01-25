@@ -1,11 +1,11 @@
 #include "hobbyraytracer.h"
 #include "bvh.h"
 
-BVHNode::BVHNode(const std::vector<std::shared_ptr<Hittable>>& srcObjects,
+#include <execution>
+
+BVHNode::BVHNode(std::vector<std::shared_ptr<Hittable>>& srcObjects,
 	size_t start, size_t end)
 {
-	std::vector<std::shared_ptr<Hittable>> objects = srcObjects;
-
 	// Pick a random axis to compare the objects on
 	int a = glm::linearRand(0, 2);
 	auto comparator = (a == 0) ? BVHNode::boxXCompare :
@@ -19,28 +19,28 @@ BVHNode::BVHNode(const std::vector<std::shared_ptr<Hittable>>& srcObjects,
 
 	if (noObjects == 1) // If there's only one object set both the right and left pointer to it
 	{
-		left = right = objects[start];
+		left = right = srcObjects[start];
 	}
 	else if (noObjects == 2) // If there's two objects assign the pointers to whichever one is lesser on the chosen axis
 	{
-		if (comparator(objects[start], objects[start + 1]))
+		if (comparator(srcObjects[start], srcObjects[start + 1]))
 		{
-			left = objects[start];
-			right = objects[start + 1];
+			left = srcObjects[start];
+			right = srcObjects[start + 1];
 		}
 		else
 		{
-			left = objects[start + 1];
-			right = objects[start];
+			left = srcObjects[start + 1];
+			right = srcObjects[start];
 		}
 	}
 	else if (noObjects != 0) // Otherwise sort the objects on the chosen axis and put them into two nodes further down the tree
 	{
-		std::sort(objects.begin() + start, objects.begin() + end, comparator);
+		std::sort(std::execution::par, srcObjects.begin() + start, srcObjects.begin() + end, comparator);
 
 		size_t mid = start + noObjects / 2;
-		left = std::make_shared<BVHNode>(objects, start, mid);
-		right = std::make_shared<BVHNode>(objects, mid, end);
+		left = std::make_shared<BVHNode>(srcObjects, start, mid);
+		right = std::make_shared<BVHNode>(srcObjects, mid, end);
 	}
 	else
 	{
@@ -60,7 +60,7 @@ BVHNode::BVHNode(const std::vector<std::shared_ptr<Hittable>>& srcObjects,
 	box = AABB::surroundingBox(boxLeft, boxRight);
 }
 
-bool BVHNode::boundingBox(AABB& outputBox) const
+bool BVHNode::boundingBox(AABB& outputBox)
 {
 	outputBox = box;
 	return true;

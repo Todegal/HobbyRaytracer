@@ -1,6 +1,7 @@
 #pragma once
 
 #include "hittable.h"
+#include "aabb.h"
 
 class Triangle : public Hittable
 {
@@ -10,7 +11,7 @@ public:
 
 	// Inherited via Hittable
 	virtual bool hit(const ray& r, float t_min, float t_max, hitRecord& rec) const override;
-	virtual bool boundingBox(AABB& outputBox) const override;
+	virtual bool boundingBox(AABB& outputBox) override;
 
 private:
 	glm::vec3 v0, v1, v2;
@@ -20,13 +21,12 @@ private:
 class ITriangle : public Hittable
 {
 public:
-	ITriangle();
 	ITriangle(std::array<glm::vec3, 3> _vertices, std::array<glm::vec3, 3> _normals, std::array<glm::vec2, 3> _uvs, std::shared_ptr<Material> _matPtr)
 		: vertices(_vertices), normals(_normals), uvs(_uvs), matPtr(_matPtr) { }
 
 	// Inherited via Hittable
 	virtual bool hit(const ray& r, float t_min, float t_max, hitRecord& rec) const override;
-	virtual bool boundingBox(AABB& outputBox) const override;
+	virtual bool boundingBox(AABB& outputBox) override;
 
 private:
 	std::array<glm::vec3, 3> vertices, normals;
@@ -34,4 +34,5 @@ private:
 
 	std::shared_ptr<Material> matPtr;
 
+	AABB bBox;
 };

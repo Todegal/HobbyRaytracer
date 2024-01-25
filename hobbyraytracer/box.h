@@ -15,7 +15,7 @@ public:
 
 	// Inherited via Hittable
 	virtual bool hit(const ray& r, float t_min, float t_max, hitRecord& rec) const override;
-	virtual bool boundingBox(AABB& outputBox) const override;
+	virtual bool boundingBox(AABB& outputBox) override;
 
 private:
 	void constructBox(glm::vec3 p0, glm::vec3 p1, std::shared_ptr<Material> matPtr);
@@ -48,7 +48,7 @@ bool Box::hit(const ray& r, float t_min, float t_max, hitRecord& rec) const
 	return sides.hit(r, t_min, t_max, rec);
 }
 
-bool Box::boundingBox(AABB& outputBox) const
+bool Box::boundingBox(AABB& outputBox)
 {
 	outputBox = AABB(boxMin, boxMax);
 	return true;

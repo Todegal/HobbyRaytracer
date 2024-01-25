@@ -16,5 +16,5 @@ private:
 
 	// Inherited via Hittable
 	virtual bool hit(const ray& r, float t_min, float t_max, hitRecord& rec) const override;
-	virtual bool boundingBox(AABB& outputBox) const override;
+	virtual bool boundingBox(AABB& outputBox) override;
 };

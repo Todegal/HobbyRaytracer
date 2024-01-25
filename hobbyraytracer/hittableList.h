@@ -12,7 +12,7 @@ public:
 	void add(std::shared_ptr<Hittable> object) { objects.push_back(object); }
 
 	virtual bool hit(const ray& r, float t_min, float t_max, hitRecord& rec) const override;
-	virtual bool boundingBox(AABB& outputBox) const override;
+	virtual bool boundingBox(AABB& outputBox) override;
 
 	//std::vector<std::shared_ptr<Hittable>> getObjects() const { return objects; }
 

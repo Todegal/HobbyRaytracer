@@ -142,7 +142,7 @@ int Scene::loadScene(std::string path)
             int samples = getProperty<int>("samples", filmNode);
             std::string ouputPath = getProperty<std::string>("output", filmNode);
 
-            Film f(w, h, samples, ouputPath);
+            std::shared_ptr<Film> f = std::make_shared<Film>(w, h, samples, ouputPath);
             film = f;
         }
         else 
@@ -160,7 +160,7 @@ int Scene::loadScene(std::string path)
             float aperture = getProperty<float>("aperture", cameraNode);
             float focusDistance = getProperty<float>("focal_distance", cameraNode);
 
-            Camera c(position, lookAt, up, fov, film.getAspectRatio(), aperture, focusDistance);
+            Camera c(position, lookAt, up, fov, film->getAspectRatio(), aperture, focusDistance);
             camera = c;
         }
         else
@@ -366,14 +366,12 @@ int Scene::loadScene(std::string path)
         return -1;
     }
 
+    isLoaded = true;
+
     return 1;
 }
 
-std::shared_ptr<HittableList> Scene::getScene(Camera& cam, std::shared_ptr<Texture>& b, Film& f)
+std::shared_ptr<HittableList> Scene::getScene()
 {
-    cam = camera;
-    b = background;
-    f = film;
-    
     return std::make_shared<HittableList>(objects);
 }

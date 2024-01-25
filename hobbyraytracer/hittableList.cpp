@@ -20,7 +20,7 @@ bool HittableList::hit(const ray& r, float t_min, float t_max, hitRecord& rec) c
 	return hitAnything;
 }
 
-bool HittableList::boundingBox(AABB& outputBox) const
+bool HittableList::boundingBox(AABB& outputBox)
 {
 	if (objects.empty()) return false;
 

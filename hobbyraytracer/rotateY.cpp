@@ -74,7 +74,7 @@ bool RotateY::hit(const ray& r, float t_min, float t_max, hitRecord& rec) const
     return true;
 }
 
-bool RotateY::boundingBox(AABB& outputBox) const
+bool RotateY::boundingBox(AABB& outputBox)
 {
     outputBox = bBox;
     return hasBox;

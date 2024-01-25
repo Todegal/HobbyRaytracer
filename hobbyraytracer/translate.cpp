@@ -18,7 +18,7 @@ bool Translate::hit(const ray& r, float t_min, float t_max, hitRecord& rec) cons
 	return true;
 }
 
-bool Translate::boundingBox(AABB& outputBox) const
+bool Translate::boundingBox(AABB& outputBox)
 {
 	if (!ptr->boundingBox(outputBox))
 	{
