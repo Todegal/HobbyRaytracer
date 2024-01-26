@@ -6,7 +6,7 @@
 
 bool Translate::hit(const ray& r, float t_min, float t_max, hitRecord& rec) const
 {
-    ray movedR(r.getOrigin() - offset, r.getDirection());
+    ray movedR(r.o - offset, r.dir);
 	if (!ptr->hit(movedR, t_min, t_max, rec))
 	{
 		return false;

@@ -20,7 +20,7 @@ bool ConstantMedium::hit(const ray& r, float t_min, float t_max, hitRecord& rec)
     if (rec1.t < 0)
         rec1.t = 0;
 
-    const float ray_length = glm::length(r.getDirection());
+    const float ray_length = glm::length(r.dir);
     const float distance_inside_boundary = (rec2.t - rec1.t) * ray_length;
     const float hit_distance = negInvDensity * log(glm::linearRand(0.0f, 1.0f));
 

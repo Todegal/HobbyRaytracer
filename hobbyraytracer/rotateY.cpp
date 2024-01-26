@@ -43,14 +43,14 @@ RotateY::RotateY(std::shared_ptr<Hittable> p, float angle)
 
 bool RotateY::hit(const ray& r, float t_min, float t_max, hitRecord& rec) const
 {
-    glm::vec3 origin = r.getOrigin(); 
-    glm::vec3 direction = r.getDirection();
+    glm::vec3 origin = r.o; 
+    glm::vec3 direction = r.dir;
 
-    origin[0] = cosTheta * r.getOrigin()[0] - sinTheta * r.getOrigin()[2];
-    origin[2] = sinTheta * r.getOrigin()[0] + cosTheta * r.getOrigin()[2];
+    origin[0] = cosTheta * r.o[0] - sinTheta * r.o[2];
+    origin[2] = sinTheta * r.o[0] + cosTheta * r.o[2];
 
-    direction[0] = cosTheta * r.getDirection()[0] - sinTheta * r.getDirection()[2];
-    direction[2] = sinTheta * r.getDirection()[0] + cosTheta * r.getDirection()[2];
+    direction[0] = cosTheta * r.dir[0] - sinTheta * r.dir[2];
+    direction[2] = sinTheta * r.dir[0] + cosTheta * r.dir[2];
 
     ray rotatedR(origin, direction);
 

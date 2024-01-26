@@ -11,14 +11,14 @@ public:
 
 	virtual bool hit(const ray& r, float t_min, float t_max, hitRecord& rec) const override
 	{
-		float t = (k - r.getOrigin().x) / r.getDirection().x;
+		float t = (k - r.o.x) / r.dir.x;
 		if (t < t_min || t > t_max)
 		{
 			return false;
 		}
 
-		float y = r.getOrigin().y + t * r.getDirection().y;
-		float z = r.getOrigin().z + t * r.getDirection().z;
+		float y = r.o.y + t * r.dir.y;
+		float z = r.o.z + t * r.dir.z;
 
 		if (y < y0 || y > y1 || z < z0 || z > z1)
 		{
@@ -58,14 +58,14 @@ public:
 
 	virtual bool hit(const ray& r, float t_min, float t_max, hitRecord& rec) const override
 	{
-		float t = (k - r.getOrigin().y) / r.getDirection().y;
+		float t = (k - r.o.y) / r.dir.y;
 		if (t < t_min || t > t_max)
 		{
 			return false;
 		}
 
-		float x = r.getOrigin().x + t * r.getDirection().x;
-		float z = r.getOrigin().z + t * r.getDirection().z;
+		float x = r.o.x + t * r.dir.x;
+		float z = r.o.z + t * r.dir.z;
 
 		if (x < x0 || x > x1 || z < z0 || z > z1)
 		{
@@ -105,14 +105,14 @@ public:
 
 	virtual bool hit(const ray& r, float t_min, float t_max, hitRecord& rec) const override
 	{
-		float t = (k - r.getOrigin().z) / r.getDirection().z;
+		float t = (k - r.o.z) / r.dir.z;
 		if (t < t_min || t > t_max)
 		{
 			return false;
 		}
 
-		float x = r.getOrigin().x + t * r.getDirection().x;
-		float y = r.getOrigin().y + t * r.getDirection().y;
+		float x = r.o.x + t * r.dir.x;
+		float y = r.o.y + t * r.dir.y;
 
 		if (x < x0 || x > x1 || y < y0 || y > y1)
 		{

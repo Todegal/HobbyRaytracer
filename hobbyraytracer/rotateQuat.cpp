@@ -44,8 +44,8 @@ RotateQuat::RotateQuat(std::shared_ptr<Hittable> p, glm::quat r)
 bool RotateQuat::hit(const ray& r, float t_min, float t_max, hitRecord& rec) const
 {
     // Rotate the ray according to the object's rotation
-    glm::vec3 origin = r.getOrigin();
-    glm::vec3 direction = r.getDirection();
+    glm::vec3 origin = r.o;
+    glm::vec3 direction = r.dir;
     glm::quat invRotation = glm::conjugate(rotation);
     glm::vec3 newOrigin = invRotation * origin;
     glm::vec3 newDirection = glm::normalize(invRotation * direction);

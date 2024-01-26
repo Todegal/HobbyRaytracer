@@ -10,8 +10,8 @@ Scale::Scale(std::shared_ptr<Hittable> p, glm::vec3 f)
 
 bool Scale::hit(const ray& r, float t_min, float t_max, hitRecord& rec) const
 {
-    glm::vec3 origin = r.getOrigin();
-    glm::vec3 direction = r.getDirection();
+    glm::vec3 origin = r.o;
+    glm::vec3 direction = r.dir;
 
     ray scaledRay(origin / factor, direction / factor);
 

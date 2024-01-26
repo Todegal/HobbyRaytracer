@@ -6,7 +6,7 @@ bool Triangle::hit(const ray& r, float t_min, float t_max, hitRecord& rec) const
     glm::vec3 v0v1 = v1 - v0;
     glm::vec3 v0v2 = v2 - v0;
     
-    glm::vec3 pV = glm::normalize(glm::cross(r.getDirection(), v0v2));
+    glm::vec3 pV = glm::normalize(glm::cross(r.dir, v0v2));
     float d = glm::dot(glm::normalize(v0v1), pV);
 
     if (d < 0.0001f) return false;
@@ -15,12 +15,12 @@ bool Triangle::hit(const ray& r, float t_min, float t_max, hitRecord& rec) const
 
     float invD = 1.0f / d;
 
-    glm::vec3 tV = glm::normalize(r.getOrigin() - v0);
+    glm::vec3 tV = glm::normalize(r.o - v0);
     rec.u = glm::dot(tV, pV) * invD;
     if (rec.u < 0 || rec.u > 1) return false;
 
     glm::vec3 qV = glm::cross(tV, glm::normalize(v0v1));
-    rec.v = glm::dot(glm::normalize(r.getDirection()), qV) * invD;
+    rec.v = glm::dot(glm::normalize(r.dir), qV) * invD;
     if (rec.v < 0 || rec.u + rec.v > 1) return false;
 
     rec.t = glm::dot(v0v2, qV) * invD;
@@ -58,8 +58,8 @@ bool ITriangle::hit(const ray& r, float t_min, float t_max, hitRecord& rec) cons
 {
     // See: https://pbr-book.org/3ed-2018/Shapes/Triangle_Meshes
 
-    glm::vec3 d = r.getDirection();
-    glm::vec3 o = r.getOrigin();
+    glm::vec3 d = r.dir;
+    glm::vec3 o = r.o;
 
     // Translate ray to origin
     glm::vec3 p0t = vertices[0] - o;

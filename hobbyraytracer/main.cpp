@@ -35,40 +35,47 @@ constexpr int NUM_THREADS = 12;
 
 // RENDER
 
-static glm::vec3 rayColour(const ray& r, const std::shared_ptr<Texture> background, const std::shared_ptr<Hittable> world, int depth = MAX_DEPTH)
-{
-	if (depth <= 0) // If depth limit is exceeded just return black
-		return glm::vec3(0.0f);
+static glm::vec3 rayColour(ray r, const std::shared_ptr<Texture> background, const std::shared_ptr<Hittable> world)
+{	
+	glm::vec3 currentAttenuation = glm::vec3(1.0f);
+	glm::vec3 result = glm::vec3(0.0f);
 
-	hitRecord rec;
-	if (!world->hit(r, 0.001f, INFINITY, rec))
-	{
-		// Normalize ray direction
-		glm::vec3 nD = glm::normalize(r.getDirection());
+	for (int i = 0; i < MAX_DEPTH; ++i) {
+		hitRecord rec;
+		if (!world->hit(r, 0.001f, INFINITY, rec))
+		{
+			// Normalize ray direction
+			glm::vec3 nD = glm::normalize(r.dir);
 
-		// Convert normalized ray direction to polar coordinates
-		float phi = atan2(nD.z, nD.x);
-		float theta = acos(nD.y);
+			// Convert normalized ray direction to polar coordinates
+			float phi = atan2(nD.z, nD.x);
+			float theta = acos(nD.y);
 
-		// Convert polar coordinates to UV coordinates
-		float u = phi / (2 * glm::pi<float>()) + 0.5;
-		float v = theta / glm::pi<float>();
+			// Convert polar coordinates to UV coordinates
+			float u = phi / (2 * glm::pi<float>()) + 0.5;
+			float v = theta / glm::pi<float>();
 
-		return background->colourValue(u, v, glm::vec3(0));
-		//return glm::vec3(0.1);
+			result += currentAttenuation * background->colourValue(u, v, glm::vec3(0));
+			break;
+		}
+
+		ray scattered;
+		glm::vec3 attenuation;
+		glm::vec3 emitted = rec.matPtr->emitted(rec.u, rec.v, rec.p);
+
+		bool b = rec.matPtr->scatter(r, rec, attenuation, scattered);
+		if (!b)
+		{
+			result += currentAttenuation * emitted;
+			break;
+		}
+
+		result += currentAttenuation * emitted;
+		currentAttenuation *= attenuation;
+		r = scattered;
 	}
 
-	ray scattered;
-	glm::vec3 attenuation;
-	glm::vec3 emitted = rec.matPtr->emitted(rec.u, rec.v, rec.p);
-
-	bool b = rec.matPtr->scatter(r, rec, attenuation, scattered);
-	if (!b)
-	{
-		return emitted;
-	}
-
-	return emitted + attenuation * rayColour(scattered, background, world, depth - 1);
+	return result;
 }
 
 static void render(int nThreads, const std::shared_ptr<Texture> background, 
@@ -84,6 +91,22 @@ static void render(int nThreads, const std::shared_ptr<Texture> background,
 
 	std::vector<int> indices(numPixels);
 	std::iota(indices.begin(), indices.end(), 0);
+
+	std::atomic<int> pixelsCompleted = 0;
+
+	std::thread reporter([&pixelsCompleted](int totalPixels) {
+			while (pixelsCompleted <= totalPixels)
+			{
+				std::cout << "\rPixels rendered: " << pixelsCompleted << "/" << totalPixels << std::flush;
+				
+				if (pixelsCompleted == totalPixels)
+					break;
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(500));
+			}
+		},
+		numPixels
+	);
 
 	std::for_each_n(std::execution::par, indices.begin(), numPixels,
 		[&](int pIdx) {
@@ -106,8 +129,12 @@ static void render(int nThreads, const std::shared_ptr<Texture> background,
 
 			std::lock_guard<std::mutex> guard(m);
 			film->writeColour(pixelColour, film->getPixels() + (pIdx * 3));
+
+			pixelsCompleted++;
 		}
 	);
+
+	reporter.join();
 
 	std::cout << "\n";
 }

@@ -22,7 +22,7 @@ T Scene::getProperty(std::string name, YAML::Node node)
 }
 
 template<>
-static glm::vec3 Scene::getProperty<glm::vec3>(std::string name, YAML::Node node)
+glm::vec3 Scene::getProperty<glm::vec3>(std::string name, YAML::Node node)
 {
     if (YAML::Node prop = node[name])
     {
@@ -101,21 +101,23 @@ MatScalar Scene::getProperty<MatScalar>(std::string name, YAML::Node node)
 {
     if (YAML::Node prop = node[name])
     {
-        if (prop.IsScalar())
-        {
-            return getProperty<float>(name, node);
+        try {
+            float floatValue = prop.as<float>();
+
+            return floatValue;
         }
-        else
+        catch (const std::exception e) {
+
+        }
+
+        std::string textureName = getProperty<std::string>(name, node);
+        if (textures.count(textureName) == 1)
         {
-            std::string name = getProperty<std::string>(name, node);
-            if (textures.count(name) == 1)
-            {
-                return textures[name];
-            }
-            else {
-                textures[name] = std::make_shared<ImageTexture>(name);
-                return textures[name];
-            }
+            return textures[textureName];
+        }
+        else {
+            textures[textureName] = std::make_shared<ImageTexture>(textureName);
+            return textures[textureName];
         }
     }
 

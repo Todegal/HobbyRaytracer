@@ -19,7 +19,7 @@ struct hitRecord
 	bool frontFace;
 
 	inline void setFaceNormal(const ray& r, const glm::vec3& outward_normal) {
-		frontFace = glm::dot(r.getDirection(), outward_normal) < 0;
+		frontFace = glm::dot(r.dir, outward_normal) < 0;
 		normal = frontFace ? outward_normal : -outward_normal;
 	}
 };

@@ -26,10 +26,10 @@ public:
 	bool hit(const ray& r, float t_min, float t_max) const
 	{
 		for (int a = 0; a < 3; a++) {
-			auto t0 = std::min((min[a] - r.getOrigin()[a]) / r.getDirection()[a],
-				(max[a] - r.getOrigin()[a]) / r.getDirection()[a]);
-			auto t1 = std::max((min[a] - r.getOrigin()[a]) / r.getDirection()[a],
-				(max[a] - r.getOrigin()[a]) / r.getDirection()[a]);
+			auto t0 = std::min((min[a] - r.o[a]) / r.dir[a],
+				(max[a] - r.o[a]) / r.dir[a]);
+			auto t1 = std::max((min[a] - r.o[a]) / r.dir[a],
+				(max[a] - r.o[a]) / r.dir[a]);
 			t_min = std::max(t0, t_min);
 			t_max = std::min(t1, t_max);
 			if (t_max <= t_min)

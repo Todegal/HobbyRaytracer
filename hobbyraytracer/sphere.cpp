@@ -19,9 +19,9 @@ void Sphere::getSphereUV(const glm::vec3& p, float& u, float& v)
 
 bool Sphere::hit(const ray& r, float t_min, float t_max, hitRecord& rec) const
 {
-    glm::vec3 oc = r.getOrigin() - center;
-    float a = glm::length(r.getDirection()) * glm::length(r.getDirection());
-    float half_b = glm::dot(oc, r.getDirection());
+    glm::vec3 oc = r.o - center;
+    float a = glm::length(r.dir) * glm::length(r.dir);
+    float half_b = glm::dot(oc, r.dir);
     float c = glm::length(oc) * glm::length(oc) - radius * radius;
 
     float discriminant = half_b * half_b - a * c;

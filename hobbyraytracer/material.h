@@ -165,7 +165,7 @@ public:
 
 	virtual bool scatter(const ray& r_in, const hitRecord& rec, glm::vec3& attenuation, ray& scattered) const override
 	{
-		glm::vec3 reflected = glm::reflect(glm::normalize(r_in.getDirection()), glm::normalize(rec.normal));
+		glm::vec3 reflected = glm::reflect(glm::normalize(r_in.dir), glm::normalize(rec.normal));
 
 		float roughness = glm::length(r.valueAt(rec.u, rec.v, rec.p));
 		roughness = roughness < 1 ? roughness : 1;
@@ -173,7 +173,7 @@ public:
 		scattered = ray(rec.p, reflected + roughness * glm::sphericalRand(1.0f) + glm::vec3(std::numeric_limits<float>::epsilon()));
 		attenuation = albedo.valueAt(rec.u, rec.v, rec.p);
 
-		return glm::dot(scattered.getDirection(), glm::normalize(rec.normal)) > 0;
+		return glm::dot(scattered.dir, glm::normalize(rec.normal)) > 0;
 	}
 
 private:
@@ -206,7 +206,7 @@ public:
 		attenuation = glm::vec3(1, 1, 1);
 		float refractionRatio = rec.frontFace ? (1.0f / ir.valueAt(rec.u, rec.v, rec.p)) : ir.valueAt(rec.u, rec.v, rec.p);
 
-		glm::vec3 unitDirection = glm::normalize(r_in.getDirection());
+		glm::vec3 unitDirection = glm::normalize(r_in.dir);
 		double cosTheta = glm::min(glm::dot(-unitDirection, rec.normal), 1.0f);
 		double sinTheta = glm::sqrt(1.0 - cosTheta * cosTheta);
 
